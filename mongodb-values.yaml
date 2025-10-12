@@ -1,0 +1,7 @@
+architecture: standalone
+auth:
+  rootPassword: "YourSecretPassword"
+image:
+  registry: docker.io
+  repository: mongo
+  tag: "6.0"

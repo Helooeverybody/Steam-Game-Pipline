@@ -1,0 +1,20 @@
+images:
+  airflow:
+    repository: "frostedpilot/airflow"
+    tag: "latest"
+    pullPolicy: Always
+
+executor: CeleryExecutor
+workers:
+  replicas: 2
+  resources:
+    requests:
+      cpu: "200m"
+      memory: "256Mi"
+scheduler:
+  resources:
+    requests:
+      cpu: "200m"
+      memory: "256Mi"
+ingress:
+  enabled: false
