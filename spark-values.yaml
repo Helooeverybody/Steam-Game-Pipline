@@ -1,0 +1,14 @@
+master:
+  replicas: 1
+worker:
+  replicas: 3
+
+global:
+  security:
+    allowInsecureImages: true
+
+image:
+  registry: docker.io
+  # Bitnami has deprecated the main repo, so we use the legacy one
+  repository: bitnamilegacy/spark
+  tag: "3.5.5"
