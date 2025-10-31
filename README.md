@@ -188,8 +188,16 @@ export AGENT_IP=$(tailscale ip -4)
 3. Install k3s agent
 
 ```
-export INSTALL_K3S_EXEC="agent --vpn-auth=name=tailscale,joinKey=${TAILSCALE_AUTH_KEY} --node-external-ip=${AGENT_IP}"
+export INSTALL_K3S_EXEC="agent --vpn-auth=name=tailscale,joinKey=${TAILSCALE_AUTH_KEY} --node-external-ip=${AGENT_IP} --server=${K3S_URL}"
 curl -sfL https://get.k3s.io | sh -
+```
+
+4. Configure the k3s agent to be able to use kubectl
+
+Download the `k3s.yaml` file on Discord and put it into the `~/.kube/` folder as the file `config`:
+
+```bash
+cp k3s.yaml ~/.kube/config
 ```
 
 ### Step 3: Configuration Files
