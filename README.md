@@ -196,11 +196,6 @@ Download the `k3s.yaml` file on Discord and put it into the `~/.kube/` folder as
 
 ```bash
 mkdir -p $HOME/.kube
-sudo cp /etc/rancher/k3s/k3s.yaml $HOME/.kube/config
-sudo chown $(id -u):$(id -g) $HOME/.kube/config
-```
-
-```bash
 cp k3s.yaml ~/.kube/config
 ```
 
@@ -233,7 +228,7 @@ Deploy the applications
 ```bash
 helm install mongodb bitnami/mongodb --values mongodb-values.yaml
 helm install kafka bitnami/kafka --values kafka-values.yaml
-helm install spark bitnami/spark --values spark-values.yaml
+helm install spark bitnami/spark --namespace spark-cluster --values spark-values.yaml
 helm install airflow airflow-community/airflow --namespace airflow -f airflow-values-lite.yaml
 ```
 
@@ -279,4 +274,20 @@ kubectl logs -f <pod-name> -n <namespace> --previous
 
 ```bash
 kubectl exec -it <pod-name> -n <namespace> -- /bin/bash
+```
+
+8. Uninstall k3s
+
+Server node:
+
+```bash
+/usr/local/bin/k3s-uninstall.sh
+sudo rm -rf /etc/rancher/ /var/lib/rancher/
+```
+
+Agent node:
+
+```bash
+/usr/local/bin/k3s-agent-uninstall.sh
+sudo rm -rf /etc/rancher/ /var/lib/rancher/
 ```
