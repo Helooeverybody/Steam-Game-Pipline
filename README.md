@@ -147,8 +147,6 @@ export TAILSCALE_AUTH_KEY="THE TAILSCALE AUTH KEY"
 source ~/.bashrc
 export INSTALL_K3S_EXEC="server --token=${K3S_TOKEN} --vpn-auth=name=tailscale,joinKey=${TAILSCALE_AUTH_KEY} --node-external-ip=${SERVER_IP}"
 curl -sfL https://get.k3s.io | sh -
-
-
 ```
 
 After k3s is install:
@@ -198,6 +196,12 @@ Download the `k3s.yaml` file on Discord and put it into the `~/.kube/` folder as
 
 ```bash
 cp k3s.yaml ~/.kube/config
+```
+
+```bash
+mkdir -p $HOME/.kube
+sudo cp /etc/rancher/k3s/k3s.yaml $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
 ```
 
 ### Step 3: Configuration Files
