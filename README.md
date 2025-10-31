@@ -13,53 +13,58 @@ config:
   theme: default
 ---
 flowchart TD
- subgraph A["External Data Sources"]
-    direction RL
+    subgraph A["External Data Sources"]
         Sources("SteamDB & Steam API")
-  end
- subgraph B1["Orchestration"]
-    direction RL
-        Airflow["Airflow Scheduler & Workers"]
-  end
- subgraph B2["Data Ingestion"]
-    direction RL
-        Scraper["Python Scraper Pod"]
-        Kafka["Kafka Broker"]
-  end
- subgraph B3["Storage & Processing"]
-    direction RL
-        Spark["Spark Master & Workers"]
-        HDFS["HDFS Data Storage<br><b>Raw</b> → <b>Silver</b> → <b>Gold</b> Layers"]
-        MongoDB["MongoDB Serving DB"]
-  end
- subgraph B["Kubernetes Cluster via k3s"]
-    direction RL
-        B1
-        B2
-        B3
-  end
- subgraph C["Downstream Consumers"]
-        Consumers["Dashboards, Reports, Notebooks"]
-  end
-    Airflow -- Schedules Ingestion Task --> Scraper
-    Airflow -- Schedules ETL Pipeline --> Spark
-    Sources -- Fetched Data --> Scraper
-    Scraper -- Streams Raw Data --> Kafka
-    Kafka -- Consumed by Spark --> Spark
-    Spark -- Processes & Refines Data Through All Layers --> HDFS
-    Spark -- Loads Final Aggregates --> MongoDB
-    MongoDB -- Direct Queries for Insights --> Consumers
-     Airflow:::orchestration
-     Scraper:::ingestion
-     Kafka:::storage
-     Spark:::processing
-     HDFS:::storage
-     MongoDB:::storage
+    end
+
+    subgraph B["Kubernetes Cluster"]
+        direction LR
+        subgraph B1["Ingestion & Orchestration"]
+            Airflow["Airflow"]:::orchestration
+            Scraper["Python Scraper"]:::ingestion
+            Kafka["Kafka"]:::storage
+        end
+
+        subgraph B2["Processing & Storage"]
+            Spark["Spark"]:::processing
+            HDFS["HDFS Data Lake<br>(Raw→Silver→Gold)"]:::storage
+            DQOps["DQOps"]:::processing
+        end
+
+        subgraph B3["Serving Layer"]
+            MongoDB["MongoDB"]:::storage
+            Trino["Trino SQL Engine"]:::processing
+            Feast["Feast Feature Store"]:::ml
+        end
+    end
+
+    subgraph C["Downstream Consumers"]
+        Consumers["BI, Analytics & ML Applications"]
+    end
+
+    %% --- Main Data Flow ---
+    Sources -- Fetched Data --> Scraper -- Raw Data --> Kafka -- Data Stream --> Spark
+    Spark -- Processes & Stores Data --> HDFS
+    DQOps -- Monitors Data Quality --> HDFS
+    Airflow -- Schedules Pipeline --> Spark
+
+    %% --- Three Paths to Consumers ---
+    Spark -- Aggregated Data --> MongoDB
+    MongoDB -- <b>For Dashboards (Power BI)</b> --> Consumers
+
+    HDFS -- Granular Data --> Trino
+    Trino -- <b>For Ad-Hoc SQL Analytics</b> --> Consumers
+
+    HDFS -- Historical Features --> Feast
+    Feast -- <b>For Real-time ML Models</b> --> Consumers
+
+
+    %% --- Styling ---
     classDef storage fill:#D5E8D4,stroke:#82B366,stroke-width:2px
     classDef processing fill:#F8CECC,stroke:#B85450,stroke-width:2px
     classDef orchestration fill:#DAE8FC,stroke:#6C8EBF,stroke-width:2px
     classDef ingestion fill:#FFE6CC,stroke:#D79B00,stroke-width:2px
-
+    classDef ml fill:#F5F5DC,stroke:#BDB76B,stroke-width:2px
 ```
 
 ## Tech Stack
@@ -74,6 +79,9 @@ flowchart TD
 - **Streaming/Messaging**: Apache Kafka
 - **Distributed Storage**: HDFS
 - **NoSQL Database**: MongoDB
+- **Query Engine**: Trino
+- **Data Quality**: DQOps
+- **Feature Store**: Feast
 
 ---
 
@@ -88,15 +96,18 @@ This guide details the steps to create a n-node Kubernetes cluster across n lapt
 2.  **Install Tailscale**:
 
     - **On WSL2 (Ubuntu Terminal)**: Run the following to install and start Tailscale.
+
       ```bash
       curl -fsSL https://tailscale.com/install.sh | sh
       sudo tailscale up
-      # Add each laptops to tailnet, detail in group mess
+
+      # On first install, there will be a link, send it to Discord so I can add you to tailnet
       ```
 
 3.  **Share IP Addresses**: Each member must find their Tailscale IP address and share it with the team.
     ```bash
     tailscale ip -4
+    # Share the ip on Discord
     ```
 
 ### Step 2: Cluster Formation (k3s)
@@ -107,17 +118,37 @@ Designate one member as the **Server Node** and the others as **Agent Nodes**.
 
 Run these commands in your WSL2 terminal.
 
+0. Get the token
+
+```
+openssl rand -hex 16
+# Copy the result
+```
+
+1. Edit the .bashrc file
+
+```
+nano ~/.bashrc
+# or
+vim ~/.bashrc
+```
+
+2. Paste the following into the .bashrc file
+
 ```bash
-# 1. Generate and share a secret token for the cluster
-export K3S_TOKEN=$(openssl rand -hex 16)
-# Note down and share with others
-
-# 2. Get your own Tailscale IP
+export K3S_TOKEN="THE HEX RESULT COPIED IN STEP 0"
 export SERVER_IP=$(tailscale ip -4)
-echo "server IP: ${SERVER_IP}"
+export TAILSCALE_AUTH_KEY="THE TAILSCALE AUTH KEY"
+```
 
-# 3. Install k3s server with permissions for the config file
-curl -sfL https://get.k3s.io | K3S_TOKEN=${K3S_TOKEN} INSTALL_K3S_EXEC="server --node-ip=${SERVER_IP} --flannel-iface=tailscale0 --write-kubeconfig-mode 644" sh -
+3. Install k3s server with permissions for the config file
+
+```
+source ~/.bashrc
+export INSTALL_K3S_EXEC="server --token=${K3S_TOKEN} --vpn-auth=name=tailscale,joinKey=${TAILSCALE_AUTH_KEY} --node-external-ip=${SERVER_IP}"
+curl -sfL https://get.k3s.io | sh -
+
+
 ```
 
 After k3s is install:
@@ -134,17 +165,31 @@ echo "kubectl is now configured."
 
 Each of the other four students must run these commands in their WSL2 terminal.
 
+1. Edit the .bashrc
+
+```
+nano ~/.bashrc
+# or
+vim ~/.bashrc
+```
+
+2. Paste the env variables got from the server node into .bashrc
+
 ```bash
 # 1. Set environment variables
-#    PASTE the token and server IP shared by the Server Node member
+#  Get the env from Discord!!!
 export K3S_TOKEN="<PASTE_THE_SHARED_TOKEN_HERE>"
 export SERVER_IP="<PASTE_SERVER_TAILSCALE_IP_HERE>"
-export MY_IP=$(tailscale ip -4)
+export TAILSCALE_AUTH_KEY="<PASTE_TAILSCALE_AUTH_KEY_HERE>"
+export K3S_URL="https://${SERVER_IP}:6443"
+export AGENT_IP=$(tailscale ip -4)
+```
 
-# 2. Install k3s agent
-curl -sfL https://get.k3s.io | K3S_URL="https://"${SERVER_IP}":6443" K3S_TOKEN="${K3S_TOKEN}" INSTALL_K3S_EXEC="agent --node-ip=${MY_IP}" sh -
+3. Install k3s agent
 
-echo "Agent installation complete."
+```
+export INSTALL_K3S_EXEC="agent --vpn-auth=name=tailscale,joinKey=${TAILSCALE_AUTH_KEY} --node-external-ip=${AGENT_IP}"
+curl -sfL https://get.k3s.io | sh -
 ```
 
 ### Step 3: Configuration Files
@@ -167,7 +212,7 @@ Add necessary helm repos
 
 ```bash
 helm repo add bitnami https://charts.bitnami.com/bitnami
-helm repo add apache-airflow https://airflow.apache.org
+helm repo add airflow-community https://airflow-helm.github.io/charts
 helm repo update
 ```
 
@@ -177,5 +222,49 @@ Deploy the applications
 helm install mongodb bitnami/mongodb --values mongodb-values.yaml
 helm install kafka bitnami/kafka --values kafka-values.yaml
 helm install spark bitnami/spark --values spark-values.yaml
-helm install airflow apache-airflow/airflow --namespace airflow --create-namespace --values airflow-values.yaml
+helm install airflow airflow-community/airflow --namespace airflow -f airflow-values-lite.yaml
+```
+
+### Some useful commands
+
+1. Get all nodes
+
+```bash
+k3s kubectl get nodes -o wide
+```
+
+2. Get all pods
+
+```bash
+k3s kubectl get pods -o wide -n <namespace>
+```
+
+3. Get detailed node information
+
+```bash
+k3s kubectl describe nodes
+```
+
+4. Get pod details
+
+```bash
+kubectl describe pod <pod-name> -n <namespace>
+```
+
+5. Get pod logs
+
+```bash
+kubectl logs -f <pod-name> -n <namespace>
+```
+
+6. Get previous pod logs (useful for debug/crash)
+
+```bash
+kubectl logs -f <pod-name> -n <namespace> --previous
+```
+
+7. Execute command in pod
+
+```bash
+kubectl exec -it <pod-name> -n <namespace> -- /bin/bash
 ```
