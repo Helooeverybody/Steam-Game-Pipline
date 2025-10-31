@@ -186,7 +186,7 @@ export AGENT_IP=$(tailscale ip -4)
 3. Install k3s agent
 
 ```
-export INSTALL_K3S_EXEC="agent --vpn-auth=name=tailscale,joinKey=${TAILSCALE_AUTH_KEY} --node-external-ip=${AGENT_IP} --server=${K3S_URL}"
+export INSTALL_K3S_EXEC="agent --vpn-auth=name=tailscale,joinKey=${TAILSCALE_AUTH_KEY} --node-external-ip=${AGENT_IP} --server=${K3S_URL} --token=${K3S_TOKEN}"
 curl -sfL https://get.k3s.io | sh -
 ```
 
@@ -195,13 +195,13 @@ curl -sfL https://get.k3s.io | sh -
 Download the `k3s.yaml` file on Discord and put it into the `~/.kube/` folder as the file `config`:
 
 ```bash
-cp k3s.yaml ~/.kube/config
-```
-
-```bash
 mkdir -p $HOME/.kube
 sudo cp /etc/rancher/k3s/k3s.yaml $HOME/.kube/config
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
+```
+
+```bash
+cp k3s.yaml ~/.kube/config
 ```
 
 ### Step 3: Configuration Files
