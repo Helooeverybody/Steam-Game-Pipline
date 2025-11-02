@@ -1,7 +1,11 @@
 master:
   replicas: 1
+  # Reference the ConfigMap for the master pod
+  configurationConfigMap: "spark-defaults-conf"
 worker:
   replicas: 3
+  # Reference the ConfigMap for the worker pods
+  configurationConfigMap: "spark-defaults-conf"
 
 global:
   security:
@@ -11,4 +15,4 @@ image:
   registry: docker.io
   # Bitnami has deprecated the main repo, so we use the legacy one
   repository: bitnamilegacy/spark
-  tag: "3.5.5"
+  tag: "3.5.4"

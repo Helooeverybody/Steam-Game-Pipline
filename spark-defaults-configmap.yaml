@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spark-defaults-conf
+  namespace: spark-cluster
+data:
+  spark-defaults.conf: |
+    spark.jars.ivy=/tmp/.ivy

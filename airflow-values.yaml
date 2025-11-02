@@ -1,20 +1,41 @@
-images:
-  airflow:
-    repository: "frostedpilot/airflow"
-    tag: "latest"
-    pullPolicy: Always
+airflow:
+  image:
+    repository: frostedpilot/airflow
+    tag: "2.10.5"
+    pullPolicy: IfNotPresent
+  executor: KubernetesExecutor
 
-executor: CeleryExecutor
+  fernetKey: "CHANGE_ME_THIS_IS_UNSAFE!"
+  webserverSecretKey: "CHANGE_ME_THIS_IS_UNSAFE!"
+
+  config:
+    AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "False"
+    AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+
+dags:
+  persistence:
+    enabled: false
+  gitSync:
+    enabled: false
+
 workers:
-  replicas: 2
-  resources:
-    requests:
-      cpu: "200m"
-      memory: "256Mi"
-scheduler:
-  resources:
-    requests:
-      cpu: "200m"
-      memory: "256Mi"
+  enabled: false
+
+flower:
+  enabled: false
+
+triggerer:
+  enabled: true
+  replicas: 1
+
+postgresql:
+  enabled: true
+  persistence:
+    enabled: true
+    size: 5Gi
+
+redis:
+  enabled: false
+
 ingress:
   enabled: false
