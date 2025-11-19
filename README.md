@@ -87,11 +87,11 @@ flowchart TD
 
 ## Starting guide for project members
 
-This guide details the steps to create a n-node Kubernetes cluster across n laptops and deploy the big data stack. One laptop will be selected as the k3s server node, and other laptops as agent node.
+This guide details the steps to create an n-node Kubernetes cluster across n laptops and deploy the big data stack. One laptop will be selected as the k3s server node, and other laptops as agent node.
 
 ### Step 1: Prerequisites (All Laptops)
 
-1.  **Install WSL2**: Follow the guide on official Microsoft page
+1.  **Install WSL2**: Follow the guide on the official Microsoft page
 
 2.  **Install Tailscale**:
 
@@ -101,7 +101,7 @@ This guide details the steps to create a n-node Kubernetes cluster across n lapt
       curl -fsSL https://tailscale.com/install.sh | sh
       sudo tailscale up
 
-      # On first install, there will be a link, send it to Discord so I can add you to tailnet
+      # On first install, there will be a link. Send it to Discord so I can add you to Tailnet
       ```
 
 3.  **Share IP Addresses**: Each member must find their Tailscale IP address and share it with the team.
@@ -270,7 +270,7 @@ kubectl logs -f <pod-name> -n <namespace>
 kubectl logs -f <pod-name> -n <namespace> --previous
 ```
 
-7. Execute command in pod
+7. Execute the command in the pod
 
 ```bash
 kubectl exec -it <pod-name> -n <namespace> -- /bin/bash
