@@ -291,3 +291,6 @@ Agent node:
 /usr/local/bin/k3s-agent-uninstall.sh
 sudo rm -rf /etc/rancher/ /var/lib/rancher/
 ```
+
+
+Note: the new data is located at https://www.mediafire.com/file/l6xvh74100enjhz/data_mining.rar/file
