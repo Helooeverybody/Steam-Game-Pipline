@@ -220,6 +220,7 @@ Add necessary helm repos
 ```bash
 helm repo add bitnami https://charts.bitnami.com/bitnami
 helm repo add airflow-community https://airflow-helm.github.io/charts
+helm repo add spark-operator https://kubeflow.github.io/spark-operator
 helm repo update
 ```
 
@@ -230,6 +231,8 @@ helm install mongodb bitnami/mongodb --values mongodb-values.yaml
 helm install kafka bitnami/kafka --values kafka-values.yaml
 helm install spark bitnami/spark --namespace spark-cluster --values spark-values.yaml
 helm install airflow airflow-community/airflow --namespace airflow -f airflow-values-lite.yaml
+helm install spark-operator spark-operator/spark-operator --namespace spark-operator --set sparkJobNamespace="" --set webhook.enable=true
+helm install minio bitnami/minio   --namespace airflow   --values minio_values.yaml
 ```
 
 ### Some useful commands
@@ -291,6 +294,5 @@ Agent node:
 /usr/local/bin/k3s-agent-uninstall.sh
 sudo rm -rf /etc/rancher/ /var/lib/rancher/
 ```
-
 
 Note: the new data is located at https://www.mediafire.com/file/l6xvh74100enjhz/data_mining.rar/file

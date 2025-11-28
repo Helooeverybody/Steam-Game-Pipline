@@ -1,0 +1,36 @@
+image:
+  registry: docker.io
+  repository: bitnamilegacy/minio
+  tag: latest
+  pullPolicy: IfNotPresent
+
+console:
+  enabled: true
+  image:
+    registry: docker.io
+    repository: bitnamilegacy/minio-object-browser
+    tag: latest
+    pullPolicy: IfNotPresent
+
+client:
+  image:
+    registry: docker.io
+    repository: bitnamilegacy/minio-client
+    tag: latest
+    pullPolicy: IfNotPresent
+
+auth:
+  rootUser: minioadmin
+  rootPassword: minioadmin
+
+defaultBuckets: "airflow-logs,spark-scripts"
+
+persistence:
+  enabled: true
+  size: 10Gi
+
+service:
+  type: ClusterIP
+  ports:
+    api: 9000
+    console: 9090

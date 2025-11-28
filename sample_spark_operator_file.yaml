@@ -1,0 +1,56 @@
+apiVersion: "sparkoperator.k8s.io/v1beta2"
+kind: SparkApplication
+metadata:
+  name: minio-test-job
+  namespace: default
+spec:
+  type: Python
+  pythonVersion: "3"
+  mode: cluster
+  image: "spark:3.5.4"
+  sparkVersion: "3.5.4"
+
+  mainApplicationFile: "s3a://spark-scripts/read_minio.py"
+
+  # Dependencies
+  deps:
+    packages:
+      - "org.apache.hadoop:hadoop-aws:3.3.4"
+      - "com.amazonaws:aws-java-sdk-bundle:1.12.262"
+
+  restartPolicy:
+    type: Never
+
+  # Permissions hack for the official image (Ivy Cache)
+  sparkConf:
+    "spark.jars.ivy": "/tmp/.ivy"
+  volumes:
+    - name: ivy-cache
+      emptyDir: {}
+
+  hadoopConf:
+    "fs.s3a.endpoint": "http://minio.airflow.svc:9000"
+    "fs.s3a.access.key": "minioadmin"
+    "fs.s3a.secret.key": "minioadmin"
+    "fs.s3a.path.style.access": "true"
+    "fs.s3a.impl": "org.apache.hadoop.fs.s3a.S3AFileSystem"
+    "fs.s3a.connection.ssl.enabled": "false"
+
+  driver:
+    cores: 1
+    memory: "512m"
+    serviceAccount: spark-operator-spark
+    env:
+      - name: PYSPARK_PYTHON
+        value: /usr/bin/python3
+    volumeMounts:
+      - name: ivy-cache
+        mountPath: /tmp
+
+  executor:
+    cores: 1
+    instances: 1
+    memory: "512m"
+    volumeMounts:
+      - name: ivy-cache
+        mountPath: /tmp
