@@ -1,6 +1,6 @@
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
-from pyspark.sql.types import StringType, IntegerType, BooleanType, ArrayType, StructType, StructField, DateType
+from pyspark.sql.types import StringType, DoubleType, DateType
 from bs4 import BeautifulSoup
 import re
 from datetime import datetime
@@ -8,47 +8,19 @@ from dateutil import parser
 from pyspark.sql.functions import explode, map_keys, map_values
 
 RATING_TO_AGE = {
-    # ESRB
     "ec": 3, "e": 6, "e10+": 10, "t": 13, "m": 17, "ao": 18,
-    # PEGI
     "3": 3, "7": 7, "12": 12, "16": 16, "18": 18,
-    # USK
-    "0": 0, "6": 6, "12": 12, "16": 16, "18": 18,
-    # KGRB
-    "all": 0, "12": 12, "15": 15, "18": 18,
-    # AGCOM
-    "3": 3, "7": 7, "12": 12, "16": 16, "18": 18,
-    # CADPA
-    "12": 12, "16": 16, "18": 18,
-    # DEJUS
-    "l": 0, "10": 10, "12": 12, "14": 14, "16": 16, "18": 18,
-    # Steam Germany
-    "0": 0, "6": 6, "12": 12, "16": 16, "18": 18,
-    # OFLC
-    "g": 0, "pg": 10, "m": 15, "ma15": 15, "r16": 16, "r18": 18,
-    # NZOFLC
-    "g": 0, "pg": 10, "r13": 13, "r15": 15, "r16": 16, "r18": 18,
-    # CERO
-    "a": 0, "b": 12, "c": 15, "d": 17, "z": 18,
-    # GMEDIA / MDA
-    "pg13": 13, "nc16": 16, "m18": 18,
-    # FPB
-    "10": 10, "13": 13, "16": 16, "18": 18,
-    # CSRR
-    "g": 0, "7": 7, "13": 13, "15": 15, "18": 18,
-    # BBFC
-    "u": 0, "pg": 10, "12": 12, "15": 15, "18": 18,
-    # CRE
-    "3": 3, "7": 7, "12": 12, "16": 16, "18": 18,
+    "all": 0, "l": 0, "g": 0, "u": 0, "a": 0,
+    "pg": 10, "r13": 13, "r15": 15, "ma15": 15, "nc16": 16,
+    "r16": 16, "r18": 18, "m18": 18, "b": 12, "c": 15, "d": 17, "z": 18,
 }
-
 month_map = {
-        "janv.": "Jan", "févr.": "Feb", "mars": "Mar", "avr.": "Apr", "mai": "May",
-        "juin": "Jun", "juil.": "Jul", "août": "Aug", "sept.": "Sep", "oct.": "Oct",
-        "nov.": "Nov", "déc.": "Dec",
-        "ene.": "Jan", "abr.": "Apr", "ago.": "Aug", "dic.": "Dec",
-        "märz": "Mar", "okt.": "Oct", "dez.": "Dec"
-    }
+    "janv.": "Jan", "févr.": "Feb", "mars": "Mar", "avr.": "Apr", "mai": "May",
+    "juin": "Jun", "juil.": "Jul", "août": "Aug", "sept.": "Sep", "oct.": "Oct",
+    "nov.": "Nov", "déc.": "Dec",
+    "ene.": "Jan", "abr.": "Apr", "ago.": "Aug", "dic.": "Dec",
+    "märz": "Mar", "okt.": "Oct", "dez.": "Dec"
+}
 
 def clean_text(html_text):
     if not html_text or not isinstance(html_text, str):
@@ -112,16 +84,10 @@ def clean_ratings(game):
 
     return " | ".join(formatted_regions)     
 
+
 def parse_date(date_str):
     if not date_str or not isinstance(date_str, str):
         return None
-    month_map = {
-        "janv.": "Jan", "févr.": "Feb", "mars": "Mar", "avr.": "Apr", "mai": "May",
-        "juin": "Jun", "juil.": "Jul", "août": "Aug", "sept.": "Sep", "oct.": "Oct",
-        "nov.": "Nov", "déc.": "Dec",
-        "ene.": "Jan", "abr.": "Apr", "ago.": "Aug", "dic.": "Dec",
-        "märz": "Mar", "okt.": "Oct", "dez.": "Dec"
-    }
     for local, eng in month_map.items():
         if local.lower() in date_str.lower():
             date_str = re.sub(local, eng, date_str, flags=re.IGNORECASE)
@@ -135,126 +101,89 @@ def parse_date(date_str):
         return parser.parse(date_str, fuzzy=True).date()
     except Exception:
         return None
-
-
+def normalize_price(p):
+    try:
+        return round(float(p) / 100.0, 2)
+    except:
+        return None
 
 clean_text_udf = F.udf(clean_text, StringType())
-spark = SparkSession.builder.appName("SteamGameCleaner").getOrCreate()
-
+parse_date_udf = F.udf(parse_date, DateType())
 clean_ratings_udf = F.udf(clean_ratings, StringType())
-input_path = "data/top_100_games_info.json"
-df = spark.read.option("multiline", True).json(input_path)
+normalize_price_udf = F.udf(normalize_price, DoubleType())
+
+
+#------------------------------------
+
+spark = SparkSession.builder.appName("SteamGameCleaner").getOrCreate()
+input_path = "data/steam_apps_dataset_raw.json"
+
 
 
 df = spark.read.option("multiline", True).json(input_path)
 df = df.select(explode(F.map_entries(F.col("root"))).alias("entry"))
-df = df.select(F.col("entry.key").alias("appid"), F.col("entry.value").alias("game"))
+df = (
+    df.select(F.explode(F.map_entries(F.col("root"))).alias("e"))
+      .select(F.col("e.key").alias("appid"), F.col("e.value").alias("game"))
+)
+#-------------------------------------------
 
-parse_date_udf = F.udf(parse_date, DateType())
-df_cleaned = (
-    df
-    # --- Basic metadata ---
-    .withColumn("steam_appid", F.col("game.steam_appid").cast(IntegerType()))
-    .withColumn("type", F.coalesce(F.col("game.type").cast(StringType()), F.lit("")))
-    .withColumn("name", F.coalesce(F.col("game.name").cast(StringType()), F.lit("")))
-    .withColumn("required_age", F.coalesce(F.col("game.required_age").cast(IntegerType()), F.lit(None)))
-    .withColumn("is_free", F.coalesce(F.col("game.is_free").cast(BooleanType()), F.lit(None)))
-    .withColumn("header_image", F.coalesce(F.col("game.header_image").cast(StringType()), F.lit("")))
-    .withColumn("dlc", F.when(F.col("game.dlc").isNotNull(), F.expr("transform(game.dlc, d -> d)")).otherwise(F.array()))
-    .withColumn("developers", F.when(F.col("game.developers").isNotNull(),
-                                     F.expr("transform(game.developers, d -> trim(d))")).otherwise(F.array()))
-    .withColumn("publishers", F.when(F.col("game.publishers").isNotNull(),
-                                     F.expr("transform(game.publishers, p -> trim(p))")).otherwise(F.array()))
+def array_clean(col):
+    return F.expr(f"filter(transform({col}, x -> trim(x)), x -> x != '')")
 
-    # --- Text fields ---
-    .withColumn("detailed_description", F.when(F.col("game.detailed_description").isNotNull(),
-                                               clean_text_udf(F.col("game.detailed_description"))).otherwise(F.lit("")))
-    .withColumn("about_the_game", F.when(F.col("game.about_the_game").isNotNull(),
-                                         clean_text_udf(F.col("game.about_the_game"))).otherwise(F.lit("")))
-    .withColumn("short_description", F.when(F.col("game.short_description").isNotNull(),
-                                            clean_text_udf(F.col("game.short_description"))).otherwise(F.lit("")))
-    .withColumn("supported_languages", F.when(F.col("game.supported_languages").isNotNull(),
-                                              clean_text_udf(F.col("game.supported_languages"))).otherwise(F.lit("")))
+def text_clean(col):
+    return clean_text_udf(F.col(col))
 
-
-    .withColumn("regions_description", F.when(F.col("game.ratings").isNotNull(),
-                                              clean_ratings_udf(F.col("game.ratings"))).otherwise(F.lit("")))
-
-    # --- Categories & Genres ---
-    .withColumn("categories", F.when(F.col("game.categories").isNotNull(),
-                                     F.expr("transform(game.categories, c -> trim(c.description))")).otherwise(F.array()))
-    .withColumn("genres", F.when(F.col("game.genres").isNotNull(),
-                                 F.expr("transform(game.genres, g -> trim(g.description))")).otherwise(F.array()))
-
-    # --- Achievements ---
-    .withColumn("achievements_total", F.coalesce(F.col("game.achievements.total"), F.lit(0)))
-    .withColumn("achievements_highlight",
-                F.when(F.col("game.achievements.highlighted").isNotNull(),
-                       F.expr("""
-                           filter(
-                               transform(game.achievements.highlighted, h -> h.name),
-                               x -> x is not null and x != ''
-                           )
-                       """))
-                .otherwise(F.array()))
-
-    # --- Platforms ---
-    .withColumn("windows", F.coalesce(F.col("game.platforms.windows"), F.lit(False)))
-    .withColumn("mac", F.coalesce(F.col("game.platforms.mac"), F.lit(False)))
-    .withColumn("linux", F.coalesce(F.col("game.platforms.linux"), F.lit(False)))
-
-    # --- Prices and Recommendations ---
-    .withColumn("final_price", F.coalesce(F.col("game.price_overview.final_formatted"), F.lit("")))
-    .withColumn("total_rec_counts", F.coalesce(F.col("game.recommendations.total"), F.lit(0)))
-
-    # --- Release Date ---
-    .withColumn("release_date", F.when(F.col("game.release_date.date").isNotNull(),
-                                       parse_date_udf(F.col("game.release_date.date"))).otherwise(F.lit(None)))
-    .withColumn("coming_soon", F.coalesce(F.col("game.release_date.coming_soon"), F.lit(False)))
-
-    # --- Requirements ---
-    .withColumn("pc_req_min", F.when(F.col("game.pc_requirements").isNotNull(),
-                                     clean_text_udf(F.col("game.pc_requirements.minimum"))).otherwise(F.lit("")))
-    .withColumn("pc_req_rec", F.when(F.col("game.pc_requirements").isNotNull(),
-                                     clean_text_udf(F.col("game.pc_requirements.recommended"))).otherwise(F.lit("")))
-    .withColumn("mac_req_min", F.when(F.col("game.mac_requirements").isNotNull(),
-                                      clean_text_udf(F.col("game.mac_requirements.minimum"))).otherwise(F.lit("")))
-    .withColumn("mac_req_rec", F.when(F.col("game.mac_requirements").isNotNull(),
-                                      clean_text_udf(F.col("game.mac_requirements.recommended"))).otherwise(F.lit("")))
-    .withColumn("linux_req_min", F.when(F.col("game.linux_requirements").isNotNull(),
-                                        clean_text_udf(F.col("game.linux_requirements.minimum"))).otherwise(F.lit("")))
-    .withColumn("linux_req_rec", F.when(F.col("game.linux_requirements").isNotNull(),
-                                        clean_text_udf(F.col("game.linux_requirements.recommended"))).otherwise(F.lit("")))
-
-    # --- Screenshots ---
-    .withColumn("num_screenshots",
-                F.when(F.col("game.screenshots").isNotNull(),
-                       F.size(F.col("game.screenshots"))).otherwise(F.lit(0)))
-
-    # --- Package Prices ---
-    .withColumn("package_prices",
-                F.expr("""
-                    filter(
-                        flatten(
-                            transform(
-                                game.package_groups,
-                                g -> transform(g.subs, s -> s.price_in_cents_with_discount)
-                            )
-                        ),
-                        x -> x is not null
-                    )
-                """))
-
-    # --- Movies ---
-    .withColumn("movies",
-                F.when(F.col("game.movies").isNotNull(),
-                       F.expr("""
-                           filter(
-                               transform(game.movies, m -> trim(m.name)),
-                               x -> x is not null and x != ''
-                           )
-                       """))
-                .otherwise(F.array()))
+df_cleaned = df.select(
+    F.col("appid"),
+    F.col("game.steam_appid").cast("int").alias("steam_appid"),
+    F.col("game.type").alias("type"),
+    F.col("game.name").alias("name"),
+    F.col("game.required_age").cast("int"),
+    F.col("game.is_free"),
+    F.col("game.header_image"),
+    F.expr("transform(game.dlc, d -> d)").alias("dlc"),
+    array_clean("game.developers").alias("developers"),
+    array_clean("game.publishers").alias("publishers"),
+    text_clean("game.detailed_description").alias("detailed_description"),
+    text_clean("game.about_the_game").alias("about_the_game"),
+    text_clean("game.short_description").alias("short_description"),
+    text_clean("game.supported_languages").alias("supported_languages"),
+    clean_ratings_udf("game.ratings").alias("regions_description"),
+    F.expr("transform(game.categories, x -> trim(x.description))").alias("categories"),
+    F.expr("transform(game.genres, x -> trim(x.description))").alias("genres"),
+    F.col("game.achievements.total").alias("achievements_total"),
+    F.expr("transform(game.achievements.highlighted, x -> x.name)").alias("achievements_highlight"),
+    F.col("game.platforms.windows").alias("windows"),
+    F.col("game.platforms.mac").alias("mac"),
+    F.col("game.platforms.linux").alias("linux"),
+    normalize_price_udf("game.price_overview.initial").alias("initial_price"),
+    normalize_price_udf("game.price_overview.final").alias("final_price"),
+    F.col("game.recommendations.total").alias("total_rec_counts"),
+    parse_date_udf("game.release_date.date").alias("release_date"),
+    F.col("game.release_date.coming_soon").alias("coming_soon"),
+    text_clean("game.pc_requirements.minimum").alias("pc_req_min"),
+    text_clean("game.pc_requirements.recommended").alias("pc_req_rec"),
+    text_clean("game.mac_requirements.minimum").alias("mac_req_min"),
+    text_clean("game.mac_requirements.recommended").alias("mac_req_rec"),
+    text_clean("game.linux_requirements.minimum").alias("linux_req_min"),
+    text_clean("game.linux_requirements.recommended").alias("linux_req_rec"),
+    F.size("game.screenshots").alias("num_screenshots"),
+    F.expr("""
+        filter(
+            flatten(transform(game.package_groups, g -> transform(g.subs, s -> s.price_in_cents_with_discount))),
+            x -> x is not null
+        )
+    """).alias("package_prices"),
+    array_clean("game.movies.name").alias("movies"),
+    F.col("steamspy_positive").cast("int"),
+    F.col("steamspy_negative").cast("int"),
+    F.col("steamspy_userscore").cast("int"),
+    F.col("steamspy_average_forever").cast("int"),
+    F.col("steamspy_average_2weeks").cast("int"),
+    F.col("steamspy_median_forever").cast("int"),
+    F.col("steamspy_median_2weeks").cast("int"),
+    F.col("steamspy_ccu").cast("int").alias("concurrent_use")
 )
 
 df_cleaned.write.mode("overwrite").option("header", True).csv("cleaned_top_100_games_info.csv")
