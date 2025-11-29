@@ -2,6 +2,8 @@
 
 This project implements a distributed pipeline for scraping, processing, and analyzing game data from Steam and SteamDB. The project use Kubernetes (specifically k3s) running on a cluster of 3 to 5 laptops connected via a virtual private network.
 
+Note: the new data is located at [data][https://www.mediafire.com/file/l6xvh74100enjhz/data_mining.rar/file]
+
 ## Architecture
 
 The architecture use Airflow acts as the central orchestrator, scheduling tasks that leverage Kafka for data streaming, Spark for distributed processing, and HDFS and MongoDB for storage.
@@ -295,4 +297,4 @@ Agent node:
 sudo rm -rf /etc/rancher/ /var/lib/rancher/
 ```
 
-Note: the new data is located at https://www.mediafire.com/file/l6xvh74100enjhz/data_mining.rar/file
+
