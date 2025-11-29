@@ -87,11 +87,11 @@ flowchart TD
 
 ## Starting guide for project members
 
-This guide details the steps to create a n-node Kubernetes cluster across n laptops and deploy the big data stack. One laptop will be selected as the k3s server node, and other laptops as agent node.
+This guide details the steps to create an n-node Kubernetes cluster across n laptops and deploy the big data stack. One laptop will be selected as the k3s server node, and other laptops as agent node.
 
 ### Step 1: Prerequisites (All Laptops)
 
-1.  **Install WSL2**: Follow the guide on official Microsoft page
+1.  **Install WSL2**: Follow the guide on the official Microsoft page
 
 2.  **Install Tailscale**:
 
@@ -101,7 +101,7 @@ This guide details the steps to create a n-node Kubernetes cluster across n lapt
       curl -fsSL https://tailscale.com/install.sh | sh
       sudo tailscale up
 
-      # On first install, there will be a link, send it to Discord so I can add you to tailnet
+      # On first install, there will be a link. Send it to Discord so I can add you to Tailnet
       ```
 
 3.  **Share IP Addresses**: Each member must find their Tailscale IP address and share it with the team.
@@ -220,6 +220,7 @@ Add necessary helm repos
 ```bash
 helm repo add bitnami https://charts.bitnami.com/bitnami
 helm repo add airflow-community https://airflow-helm.github.io/charts
+helm repo add spark-operator https://kubeflow.github.io/spark-operator
 helm repo update
 ```
 
@@ -230,6 +231,8 @@ helm install mongodb bitnami/mongodb --values mongodb-values.yaml
 helm install kafka bitnami/kafka --values kafka-values.yaml
 helm install spark bitnami/spark --namespace spark-cluster --values spark-values.yaml
 helm install airflow airflow-community/airflow --namespace airflow -f airflow-values-lite.yaml
+helm install spark-operator spark-operator/spark-operator --namespace spark-operator --set sparkJobNamespace="" --set webhook.enable=true
+helm install minio bitnami/minio   --namespace airflow   --values minio_values.yaml
 ```
 
 ### Some useful commands
@@ -270,7 +273,7 @@ kubectl logs -f <pod-name> -n <namespace>
 kubectl logs -f <pod-name> -n <namespace> --previous
 ```
 
-7. Execute command in pod
+7. Execute the command in the pod
 
 ```bash
 kubectl exec -it <pod-name> -n <namespace> -- /bin/bash
@@ -291,3 +294,5 @@ Agent node:
 /usr/local/bin/k3s-agent-uninstall.sh
 sudo rm -rf /etc/rancher/ /var/lib/rancher/
 ```
+
+Note: the new data is located at https://www.mediafire.com/file/l6xvh74100enjhz/data_mining.rar/file
