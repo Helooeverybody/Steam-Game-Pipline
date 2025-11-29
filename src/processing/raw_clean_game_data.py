@@ -8,37 +8,21 @@ from dateutil import parser
 from pyspark.sql.functions import explode, map_keys, map_values
 
 RATING_TO_AGE = {
-    # ESRB
     "ec": 3, "e": 6, "e10+": 10, "t": 13, "m": 17, "ao": 18,
-    # PEGI
     "3": 3, "7": 7, "12": 12, "16": 16, "18": 18,
-    # USK
     "0": 0, "6": 6, "12": 12, "16": 16, "18": 18,
-    # KGRB
     "all": 0, "12": 12, "15": 15, "18": 18,
-    # AGCOM
     "3": 3, "7": 7, "12": 12, "16": 16, "18": 18,
-    # CADPA
     "12": 12, "16": 16, "18": 18,
-    # DEJUS
     "l": 0, "10": 10, "12": 12, "14": 14, "16": 16, "18": 18,
-    # Steam Germany
     "0": 0, "6": 6, "12": 12, "16": 16, "18": 18,
-    # OFLC
     "g": 0, "pg": 10, "m": 15, "ma15": 15, "r16": 16, "r18": 18,
-    # NZOFLC
     "g": 0, "pg": 10, "r13": 13, "r15": 15, "r16": 16, "r18": 18,
-    # CERO
     "a": 0, "b": 12, "c": 15, "d": 17, "z": 18,
-    # GMEDIA / MDA
     "pg13": 13, "nc16": 16, "m18": 18,
-    # FPB
     "10": 10, "13": 13, "16": 16, "18": 18,
-    # CSRR
     "g": 0, "7": 7, "13": 13, "15": 15, "18": 18,
-    # BBFC
     "u": 0, "pg": 10, "12": 12, "15": 15, "18": 18,
-    # CRE
     "3": 3, "7": 7, "12": 12, "16": 16, "18": 18,
 }
 
@@ -112,16 +96,10 @@ def clean_ratings(game):
 
     return " | ".join(formatted_regions)     
 
+
 def parse_date(date_str):
     if not date_str or not isinstance(date_str, str):
         return None
-    month_map = {
-        "janv.": "Jan", "févr.": "Feb", "mars": "Mar", "avr.": "Apr", "mai": "May",
-        "juin": "Jun", "juil.": "Jul", "août": "Aug", "sept.": "Sep", "oct.": "Oct",
-        "nov.": "Nov", "déc.": "Dec",
-        "ene.": "Jan", "abr.": "Apr", "ago.": "Aug", "dic.": "Dec",
-        "märz": "Mar", "okt.": "Oct", "dez.": "Dec"
-    }
     for local, eng in month_map.items():
         if local.lower() in date_str.lower():
             date_str = re.sub(local, eng, date_str, flags=re.IGNORECASE)
@@ -137,20 +115,22 @@ def parse_date(date_str):
         return None
 
 
-
 clean_text_udf = F.udf(clean_text, StringType())
-spark = SparkSession.builder.appName("SteamGameCleaner").getOrCreate()
-
+parse_date_udf = F.udf(parse_date, DateType())
 clean_ratings_udf = F.udf(clean_ratings, StringType())
-input_path = "data/top_100_games_info.json"
-df = spark.read.option("multiline", True).json(input_path)
+
+
+#------------------------------------
+spark = SparkSession.builder.appName("SteamGameCleaner").getOrCreate()
+input_path = "data/steam_apps_dataset_raw.json"
+
 
 
 df = spark.read.option("multiline", True).json(input_path)
 df = df.select(explode(F.map_entries(F.col("root"))).alias("entry"))
 df = df.select(F.col("entry.key").alias("appid"), F.col("entry.value").alias("game"))
 
-parse_date_udf = F.udf(parse_date, DateType())
+
 df_cleaned = (
     df
     # --- Basic metadata ---
@@ -162,7 +142,13 @@ df_cleaned = (
     .withColumn("header_image", F.coalesce(F.col("game.header_image").cast(StringType()), F.lit("")))
     .withColumn("dlc", F.when(F.col("game.dlc").isNotNull(), F.expr("transform(game.dlc, d -> d)")).otherwise(F.array()))
     .withColumn("developers", F.when(F.col("game.developers").isNotNull(),
-                                     F.expr("transform(game.developers, d -> trim(d))")).otherwise(F.array()))
+                                      F.expr("""
+                                        filter(
+                                            transform(game.developers, d -> trim(d)),
+                                            x -> x is not null and x != ''
+                                        )
+                                            """).otherwise(F.array())))
+
     .withColumn("publishers", F.when(F.col("game.publishers").isNotNull(),
                                      F.expr("transform(game.publishers, p -> trim(p))")).otherwise(F.array()))
 
@@ -187,7 +173,7 @@ df_cleaned = (
                                  F.expr("transform(game.genres, g -> trim(g.description))")).otherwise(F.array()))
 
     # --- Achievements ---
-    .withColumn("achievements_total", F.coalesce(F.col("game.achievements.total"), F.lit(0)))
+    .withColumn("achievements_total", F.coalesce(F.col("game.achievements.total"), F.lit(None)))
     .withColumn("achievements_highlight",
                 F.when(F.col("game.achievements.highlighted").isNotNull(),
                        F.expr("""
@@ -204,8 +190,12 @@ df_cleaned = (
     .withColumn("linux", F.coalesce(F.col("game.platforms.linux"), F.lit(False)))
 
     # --- Prices and Recommendations ---
-    .withColumn("final_price", F.coalesce(F.col("game.price_overview.final_formatted"), F.lit("")))
-    .withColumn("total_rec_counts", F.coalesce(F.col("game.recommendations.total"), F.lit(0)))
+    .withColumn(
+        "final_price",
+        F.expr("replace(game.price_overview.final_formatted, '$', '')").cast("float")
+    )
+
+    .withColumn("total_rec_counts", F.coalesce(F.col("game.recommendations.total"), F.lit(None)))
 
     # --- Release Date ---
     .withColumn("release_date", F.when(F.col("game.release_date.date").isNotNull(),
@@ -229,7 +219,7 @@ df_cleaned = (
     # --- Screenshots ---
     .withColumn("num_screenshots",
                 F.when(F.col("game.screenshots").isNotNull(),
-                       F.size(F.col("game.screenshots"))).otherwise(F.lit(0)))
+                       F.size(F.col("game.screenshots"))).otherwise(F.lit(None)))
 
     # --- Package Prices ---
     .withColumn("package_prices",
@@ -255,6 +245,15 @@ df_cleaned = (
                            )
                        """))
                 .otherwise(F.array()))
+    #--- New data ---
+    .withColumn("steamspy_positive", F.col("steamspy_positive").cast(IntegerType()))
+    .withColumn("steamspy_negative", F.col("steamspy_negative").cast(IntegerType()))
+    .withColumn("steamspy_userscore", F.col("steamspy_userscore").cast(IntegerType()))
+    .withColumn("steamspy_average_forever", F.col("steamspy_average_forever").cast(IntegerType()))
+    .withColumn("steamspy_average_2weeks", F.col("steamspy_average_2weeks").cast(IntegerType()))
+    .withColumn("steamspy_median_forever", F.col("steamspy_median_forever").cast(IntegerType()))
+    .withColumn("steamspy_median_2weeks", F.col("steamspy_median_2weeks").cast(IntegerType()))
+
 )
 
 df_cleaned.write.mode("overwrite").option("header", True).csv("cleaned_top_100_games_info.csv")
