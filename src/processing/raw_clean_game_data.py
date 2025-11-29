@@ -127,8 +127,6 @@ normalize_price_udf = F.udf(normalize_price, DoubleType())
 spark = SparkSession.builder.appName("SteamGameCleaner").getOrCreate()
 input_path = "s3a://spark-scripts/steam_apps_dataset_first_ids.json"
 
-
-
 df = spark.read.option("multiline", True).json(input_path)
 first_col = df.columns[0]
 game_schema = df.schema[first_col].dataType
@@ -180,7 +178,7 @@ df_cleaned = df.select(
 
     # achievements
     F.coalesce(F.col("game.achievements.total"), F.lit(None)).alias("achievements_total"),
-    F.coalesce(F.expr("transform(game.achievements.highlighted, x -> x.name)"), F.array()).alias("achievements_highlight"),
+    F.coalesce(F.expr("transform(coalesce(game.achievements.highlighted, array()), x -> x.name)"), F.array()).alias("achievements_highlight"),
 
     # platforms
     F.coalesce(F.col("game.platforms.windows"), F.lit(False)).alias("windows"),
@@ -204,9 +202,9 @@ df_cleaned = df.select(
 
     # package prices
     F.coalesce(
-        F.expr("""
+          F.expr("""
             filter(
-                flatten(transform(game.package_groups, g -> transform(g.subs, s -> s.price_in_cents_with_discount))),
+                flatten(transform(coalesce(game.package_groups, array()), g -> transform(coalesce(g.subs, array()), s -> s.price_in_cents_with_discount))),
                 x -> x is not null
             )
         """),
