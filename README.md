@@ -2,7 +2,7 @@
 
 This project implements a distributed pipeline for scraping, processing, and analyzing game data from Steam and SteamDB. The project use Kubernetes (specifically k3s) running on a cluster of 3 to 5 laptops connected via a virtual private network.
 
-Note: the new data is located at [data][https://www.mediafire.com/file/l6xvh74100enjhz/data_mining.rar/file]
+Note: the new data is located at [data](https://www.mediafire.com/file/l6xvh74100enjhz/data_mining.rar/file)
 
 ## Architecture
 
