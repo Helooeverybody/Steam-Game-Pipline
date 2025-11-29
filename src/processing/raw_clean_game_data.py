@@ -1,6 +1,6 @@
-from pyspark.sql import SparkSession
+from pyspark.sql import SparkSession,Row
 from pyspark.sql import functions as F
-from pyspark.sql.types import StringType, DoubleType, DateType
+from pyspark.sql.types import StringType, DoubleType, DateType, MapType
 from bs4 import BeautifulSoup
 import re
 from datetime import datetime
@@ -50,20 +50,29 @@ def clean_text(html_text):
     return text.strip(" ;")
 
 def clean_ratings(game):
-    keys = ["rating", "descriptors","required_age"]
-    ratings = game.get("ratings", {})
-    if not isinstance(ratings, dict) or not ratings:
+    if game is None:
         return ""
-    
-    formatted_regions = []
-    for region, info in ratings.items():
-        if not isinstance(info, dict):
-            continue
+    # Get ratings safely
+    ratings = getattr(game, "ratings", {})  
+    if ratings is None:
+        return ""
 
-        age = info.get("required_age")
+    # Convert Row to dict if needed
+    if isinstance(ratings, list):  # sometimes nested lists
+        ratings = dict(ratings)
+    elif isinstance(ratings, Row):
+        ratings = ratings.asDict()
+
+    formatted_regions = []
+
+    for region, info in (ratings.items() if isinstance(ratings, dict) else []):
+        if info is None:
+            continue
+        # age
+        age = getattr(info, "required_age", None) if isinstance(info, Row) else info.get("required_age", None)
         if age is None or str(age).strip() == "":
-            rating_symbol = str(info.get("rating", "")).lower().strip()
-            age = RATING_TO_AGE.get(rating_symbol, 0)  # default 0 if not recognized
+            rating_symbol = (getattr(info, "rating", "") if isinstance(info, Row) else info.get("rating", "")).lower().strip()
+            age = RATING_TO_AGE.get(rating_symbol, 0)
         else:
             try:
                 age = int(age)
@@ -71,18 +80,18 @@ def clean_ratings(game):
                 rating_symbol = str(age).lower().strip()
                 age = RATING_TO_AGE.get(rating_symbol, 0)
 
-        # --- Determine descriptors ---
-        descriptors = info.get("descriptors", "")
+        # descriptors
+        descriptors = getattr(info, "descriptors", "") if isinstance(info, Row) else info.get("descriptors", "")
         if isinstance(descriptors, list):
             descriptors = ", ".join(map(clean_text, descriptors))
         else:
             descriptors = clean_text(descriptors)
 
-        # --- Build cleaned string for region ---
         region_str = f"{region}: (required_age={age}, descriptors={descriptors})"
         formatted_regions.append(region_str)
 
-    return " | ".join(formatted_regions)     
+    return " | ".join(formatted_regions)
+ 
 
 
 def parse_date(date_str):
@@ -116,16 +125,24 @@ normalize_price_udf = F.udf(normalize_price, DoubleType())
 #------------------------------------
 
 spark = SparkSession.builder.appName("SteamGameCleaner").getOrCreate()
-input_path = "data/steam_apps_dataset_raw.json"
+input_path = "s3a://spark-scripts/steam_apps_dataset_first_ids.json"
 
 
 
 df = spark.read.option("multiline", True).json(input_path)
-df = df.select(explode(F.map_entries(F.col("root"))).alias("entry"))
-df = (
-    df.select(F.explode(F.map_entries(F.col("root"))).alias("e"))
-      .select(F.col("e.key").alias("appid"), F.col("e.value").alias("game"))
+first_col = df.columns[0]
+game_schema = df.schema[first_col].dataType
+
+# 3. Convert dynamic columns → Map(AppID → GameStruct)
+df = df.select(
+    F.from_json(
+        F.to_json(F.struct(*df.columns)),
+        MapType(StringType(), game_schema)
+    ).alias("data_map")
 )
+
+# 4. Explode into rows
+df = df.select(F.explode("data_map").alias("appid", "game"))
 #-------------------------------------------
 
 def array_clean(col):
@@ -135,55 +152,84 @@ def text_clean(col):
     return clean_text_udf(F.col(col))
 
 df_cleaned = df.select(
-    F.col("appid"),
-    F.col("game.steam_appid").cast("int").alias("steam_appid"),
-    F.col("game.type").alias("type"),
-    F.col("game.name").alias("name"),
-    F.col("game.required_age").cast("int"),
+  F.col("appid"),
+    # --- Basic fields ---
+    F.coalesce(F.col("game.steam_appid").cast("int"), F.lit(None)).alias("steam_appid"),
+    F.coalesce(F.col("game.type"), F.lit("")).alias("type"),
+    F.coalesce(F.col("game.name"), F.lit("")).alias("name"),
+    F.coalesce(F.col("game.required_age").cast("int"), F.lit(None)).alias("required_age"),
     F.col("game.is_free"),
-    F.col("game.header_image"),
-    F.expr("transform(game.dlc, d -> d)").alias("dlc"),
-    array_clean("game.developers").alias("developers"),
-    array_clean("game.publishers").alias("publishers"),
-    text_clean("game.detailed_description").alias("detailed_description"),
-    text_clean("game.about_the_game").alias("about_the_game"),
-    text_clean("game.short_description").alias("short_description"),
-    text_clean("game.supported_languages").alias("supported_languages"),
-    clean_ratings_udf("game.ratings").alias("regions_description"),
-    F.expr("transform(game.categories, x -> trim(x.description))").alias("categories"),
-    F.expr("transform(game.genres, x -> trim(x.description))").alias("genres"),
-    F.col("game.achievements.total").alias("achievements_total"),
-    F.expr("transform(game.achievements.highlighted, x -> x.name)").alias("achievements_highlight"),
-    F.col("game.platforms.windows").alias("windows"),
-    F.col("game.platforms.mac").alias("mac"),
-    F.col("game.platforms.linux").alias("linux"),
-    normalize_price_udf("game.price_overview.initial").alias("initial_price"),
-    normalize_price_udf("game.price_overview.final").alias("final_price"),
-    F.col("game.recommendations.total").alias("total_rec_counts"),
-    parse_date_udf("game.release_date.date").alias("release_date"),
-    F.col("game.release_date.coming_soon").alias("coming_soon"),
-    text_clean("game.pc_requirements.minimum").alias("pc_req_min"),
-    text_clean("game.pc_requirements.recommended").alias("pc_req_rec"),
-    text_clean("game.mac_requirements.minimum").alias("mac_req_min"),
-    text_clean("game.mac_requirements.recommended").alias("mac_req_rec"),
-    text_clean("game.linux_requirements.minimum").alias("linux_req_min"),
-    text_clean("game.linux_requirements.recommended").alias("linux_req_rec"),
-    F.size("game.screenshots").alias("num_screenshots"),
-    F.expr("""
-        filter(
-            flatten(transform(game.package_groups, g -> transform(g.subs, s -> s.price_in_cents_with_discount))),
-            x -> x is not null
-        )
-    """).alias("package_prices"),
-    array_clean("game.movies.name").alias("movies"),
-    F.col("steamspy_positive").cast("int"),
-    F.col("steamspy_negative").cast("int"),
-    F.col("steamspy_userscore").cast("int"),
-    F.col("steamspy_average_forever").cast("int"),
-    F.col("steamspy_average_2weeks").cast("int"),
-    F.col("steamspy_median_forever").cast("int"),
-    F.col("steamspy_median_2weeks").cast("int"),
-    F.col("steamspy_ccu").cast("int").alias("concurrent_use")
+    F.coalesce(F.col("game.header_image"), F.lit("")).alias("header_image"),
+
+    # --- Arrays (safe defaults []) ---
+    F.coalesce(array_clean("game.developers"), F.array()).alias("developers"),
+    F.coalesce(array_clean("game.publishers"), F.array()).alias("publishers"),
+
+    # --- Text fields ---
+    F.coalesce(text_clean("game.detailed_description"), F.lit("")).alias("detailed_description"),
+    F.coalesce(text_clean("game.about_the_game"), F.lit("")).alias("about_the_game"),
+    F.coalesce(text_clean("game.short_description"), F.lit("")).alias("short_description"),
+    F.coalesce(text_clean("game.supported_languages"), F.lit("")).alias("supported_languages"),
+
+    # ratings
+    F.coalesce(clean_ratings_udf("game.ratings"), F.lit("")).alias("regions_description"),
+
+    # categories/genres
+    F.coalesce(F.expr("transform(game.categories, x -> trim(x.description))"), F.array()).alias("categories"),
+    F.coalesce(F.expr("transform(game.genres, x -> trim(x.description))"), F.array()).alias("genres"),
+
+    # achievements
+    F.coalesce(F.col("game.achievements.total"), F.lit(None)).alias("achievements_total"),
+    F.coalesce(F.expr("transform(game.achievements.highlighted, x -> x.name)"), F.array()).alias("achievements_highlight"),
+
+    # platforms
+    F.coalesce(F.col("game.platforms.windows"), F.lit(False)).alias("windows"),
+    F.coalesce(F.col("game.platforms.mac"), F.lit(False)).alias("mac"),
+    F.coalesce(F.col("game.platforms.linux"), F.lit(False)).alias("linux"),
+
+    # price overview
+    F.coalesce(normalize_price_udf("game.price_overview.initial"), F.lit(None)).alias("initial_price"),
+    F.coalesce(normalize_price_udf("game.price_overview.final"), F.lit(None)).alias("final_price"),
+    F.coalesce(F.col("game.price_overview.discount_percent"), F.lit(None)).alias("discount_percent"),
+
+    # recommendations
+    F.coalesce(F.col("game.recommendations.total"), F.lit(None)).alias("total_rec_counts"),
+
+    # release date
+    F.coalesce(parse_date_udf("game.release_date.date"), F.lit(None)).alias("release_date"),
+    F.coalesce(F.col("game.release_date.coming_soon"), F.lit(False)).alias("coming_soon"),
+
+    # screenshots
+    F.coalesce(F.size("game.screenshots"), F.lit(0)).alias("num_screenshots"),
+
+    # package prices
+    F.coalesce(
+        F.expr("""
+            filter(
+                flatten(transform(game.package_groups, g -> transform(g.subs, s -> s.price_in_cents_with_discount))),
+                x -> x is not null
+            )
+        """),
+        F.array()
+    ).alias("package_prices"),
+
+    # movies
+    F.coalesce(array_clean("game.movies.name"), F.array()).alias("movies"),
+
+    # steamspy stats
+    F.coalesce(F.col("game.steamspy_positive").cast("int"), F.lit(None)).alias("positive_reviews"),
+    F.coalesce(F.col("game.steamspy_negative").cast("int"), F.lit(None)).alias("negative_reviews"),
+    F.coalesce(F.col("game.steamspy_userscore").cast("int"), F.lit(None)).alias("userscore"),
+
+    F.coalesce(F.col("game.steamspy_average_forever").cast("int"), F.lit(None)).alias("avg_playtime_forever"),
+    F.coalesce(F.col("game.steamspy_average_2weeks").cast("int"), F.lit(None)).alias("avg_playtime_2weeks"),
+    F.coalesce(F.col("game.steamspy_median_forever").cast("int"), F.lit(None)).alias("median_playtime_forever"),
+    F.coalesce(F.col("game.steamspy_median_2weeks").cast("int"), F.lit(None)).alias("median_playtime_2weeks"),
+    F.coalesce(F.col("game.steamspy_ccu").cast("int"), F.lit(None)).alias("concurrent_use"),
+
+    # owners cleanup
+    F.coalesce(F.regexp_replace(F.col("game.steamspy_owners"), r"\s*\.\.\s*", "-"), F.lit("")).alias("owners")
 )
 
-df_cleaned.write.mode("overwrite").option("header", True).csv("cleaned_top_100_games_info.csv")
+output_path = "s3a://spark-scripts/steam_apps_cleaned.parquet"
+df_cleaned.write.mode("overwrite").parquet(output_path)
