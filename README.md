@@ -223,6 +223,7 @@ Add necessary helm repos
 helm repo add bitnami https://charts.bitnami.com/bitnami
 helm repo add airflow-community https://airflow-helm.github.io/charts
 helm repo add spark-operator https://kubeflow.github.io/spark-operator
+helm repo add pfisterer https://pfisterer.github.io/apache-hadoop-helm/
 helm repo update
 ```
 
@@ -231,11 +232,16 @@ Deploy the applications
 ```bash
 helm install mongodb bitnami/mongodb --values mongodb-values.yaml
 helm install kafka bitnami/kafka --values kafka-values.yaml
-helm install spark bitnami/spark --namespace spark-cluster --values spark-values.yaml
 helm install airflow airflow-community/airflow --namespace airflow -f airflow-values-lite.yaml
 helm install spark-operator spark-operator/spark-operator --namespace spark-operator --set sparkJobNamespace="" --set webhook.enable=true
+helm install my-hadoop pfisterer/hadoop   --namespace hadoop   -f hdfs_values.yaml
+# Provide the same function as hadoop, but easier to use, for dev prupose only
 helm install minio bitnami/minio   --namespace airflow   --values minio_values.yaml
 ```
+
+### Side notes
+
+How to use Spark: [Spark guide](SPARK.md)
 
 ### Some useful commands
 
@@ -296,5 +302,3 @@ Agent node:
 /usr/local/bin/k3s-agent-uninstall.sh
 sudo rm -rf /etc/rancher/ /var/lib/rancher/
 ```
-
-
