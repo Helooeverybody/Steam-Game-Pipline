@@ -6,7 +6,7 @@ Note: the new data is located at [data](https://www.mediafire.com/file/l6xvh7410
 
 ## Architecture
 
-The architecture use Airflow acts as the central orchestrator, scheduling tasks that leverage Kafka for data streaming, Spark for distributed processing, and HDFS and MongoDB for storage.
+The architecture uses Airflow as the central orchestrator, scheduling tasks that leverage Kafka for data streaming, Spark for distributed processing, and HDFS and MongoDB for storage.
 
 ```mermaid
 ---
@@ -89,7 +89,7 @@ flowchart TD
 
 ## Starting guide for project members
 
-This guide details the steps to create an n-node Kubernetes cluster across n laptops and deploy the big data stack. One laptop will be selected as the k3s server node, and other laptops as agent node.
+This guide details the steps to create an n-node Kubernetes cluster across n laptops and deploy the big data stack. One laptop will be selected as the K3s server node, and the other laptops as agent nodes.
 
 ### Step 1: Prerequisites (All Laptops)
 
