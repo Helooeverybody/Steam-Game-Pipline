@@ -1,0 +1,4 @@
+kafka-python
+requests
+python-dotenv
+redis
