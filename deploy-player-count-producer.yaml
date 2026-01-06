@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: player-count-producer
+  labels:
+    app: player-count-producer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: player-count-producer
+  template:
+    metadata:
+      labels:
+        app: player-count-producer
+    spec:
+      containers:
+      - name: producer
+        image: sylvis/steam-player-count-producer:v2.0 # Your image
+        env:
+        # Inject the internal Kafka address
+        - name: KAFKA_BOOTSTRAP_SERVERS
+          value: "my-kafka-cluster-kafka-bootstrap.kafka:9092"
+        # Securely inject the Steam API key from the secret
+        - name: STEAM_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: steam-api-secrets
+              key: api-key

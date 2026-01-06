@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: live-review-producer
+  labels:
+    app: live-review-producer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: live-review-producer
+  template:
+    metadata:
+      labels:
+        app: live-review-producer
+    spec:
+      containers:
+      - name: producer
+        image: sylvis/steam-live-review-producer:v2.0
+        env:
+        - name: KAFKA_BOOTSTRAP_SERVERS
+          value: "my-kafka-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092"
+        - name: REDIS_HOST
+          value: "redis-master.redis.svc.cluster.local"
+        
+        # --- THIS IS THE FIX ---
+        # Point to the new, explicit secret you just created.
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-secret  # The name of YOUR secret
+              key: password       # The key YOU defined ('password')
+        # --- END OF FIX ---

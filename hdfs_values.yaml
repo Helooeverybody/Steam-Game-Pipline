@@ -1,0 +1,44 @@
+image:
+  image:
+  repository: farberg/apache-hadoop
+  tag: 3.4.1
+  pullPolicy: IfNotPresent
+
+hdfs:
+  nameNode:
+    replicas: 1
+    pdbMinAvailable: 0
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "250m"
+      limits:
+        memory: "1024Mi"
+  dataNode:
+    replicas: 2
+    pdbMinAvailable: 0
+    resources:
+      requests:
+        memory: "1Gi"
+        cpu: "500m"
+      limits:
+        memory: "2Gi"
+
+  webhdfs:
+    enabled: true
+
+persistence:
+  nameNode:
+    enabled: true
+    size: 5Gi
+    storageClass: local-path
+  dataNode:
+    enabled: true
+    size: 10Gi
+    storageClass: local-path
+
+yarn:
+  resourceManager:
+    replicas: 0
+  nodeManager:
+    replicas: 0

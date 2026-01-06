@@ -1,0 +1,41 @@
+# Defines the topic for the daily/on-demand game catalog snapshots
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaTopic
+metadata:
+  name: steam-games-raw
+  namespace: kafka # IMPORTANT: Must be in the same namespace as your Kafka cluster
+  labels:
+    strimzi.io/cluster: my-kafka-cluster # This label links the topic to your specific Kafka cluster
+spec:
+  partitions: 3
+  replicas: 1 # Must be <= the number of Kafka brokers (we have 1)
+  config:
+    retention.ms: -1 # Retain messages forever
+---
+# Defines the topic for all review data (both historical backfill and live stream)
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaTopic
+metadata:
+  name: steam-reviews-raw
+  namespace: kafka
+  labels:
+    strimzi.io/cluster: my-kafka-cluster
+spec:
+  partitions: 10 # More partitions as this will be a very high-volume topic
+  replicas: 1
+  config:
+    retention.ms: -1
+---
+# Defines the topic for historical and live player count data
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaTopic
+metadata:
+  name: steam-player-counts-raw
+  namespace: kafka
+  labels:
+    strimzi.io/cluster: my-kafka-cluster
+spec:
+  partitions: 3
+  replicas: 1
+  config:
+    retention.ms: -1
