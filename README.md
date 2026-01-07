@@ -230,11 +230,17 @@ helm repo update
 Deploy the applications
 
 ```bash
-helm install mongodb bitnami/mongodb --values mongodb-values.yaml
+helm install my-mongodb bitnami/mongodb --namespace database --create-namespace -f mongodb-values.yaml
 helm install kafka bitnami/kafka --values kafka-values.yaml
 helm install airflow airflow-community/airflow --namespace airflow -f airflow-values-lite.yaml
 helm install spark-operator spark-operator/spark-operator --namespace spark-operator --set sparkJobNamespace="" --set webhook.enable=true
 helm install my-hadoop pfisterer/hadoop   --namespace hadoop   -f hdfs_values.yaml
+
+# Trino stuff
+helm install nessie projectnessie/nessie --namespace nessie-ns --create-namespace -f nessie-values.yaml
+kubectl create configmap trino-hadoop-conf --namespace trino --from-file=core-site.xml=./core-site.xml --from-file=hdfs-site.xml=./hdfs-site.xml
+helm install my-trino trino/trino --namespace trino --create-namespace -f trino-values.yaml
+
 # Provide the same function as hadoop, but easier to use, for dev prupose only
 helm install minio bitnami/minio   --namespace airflow   --values minio_values.yaml
 ```
