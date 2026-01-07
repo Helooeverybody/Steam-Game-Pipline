@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: producer
-        image: sylvis/steam-live-review-producer:v2.0
+        image: sylvis/steam-live-review-producer:v4.0
         env:
         - name: KAFKA_BOOTSTRAP_SERVERS
           value: "my-kafka-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092"

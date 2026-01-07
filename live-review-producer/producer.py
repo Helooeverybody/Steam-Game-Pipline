@@ -78,7 +78,7 @@ def main():
                     log(f"  - Found {len(new_review_ids)} new review(s) for App ID {appid}!")
                     new_reviews = [r for r in latest_reviews if str(r['recommendationid']) in new_review_ids]
                     for review in new_reviews:
-                        # The message IS the review object itself, to match the backfill format.
+                        review['app_id'] = appid                         
                         message = review
                         producer.send(KAFKA_TOPIC, key=str(review['recommendationid']).encode('utf-8'), value=message)
                     
