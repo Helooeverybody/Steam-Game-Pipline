@@ -14,11 +14,26 @@ from pyspark.sql.types import (
 spark = (
     SparkSession.builder.appName("CleanSteamReviewsStream")
     .config("spark.sql.caseSensitive", "false")
+    .config(
+        "spark.sql.extensions",
+        "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions",
+    )
+    .config("spark.sql.catalog.nessie", "org.apache.iceberg.spark.SparkCatalog")
+    .config(
+        "spark.sql.catalog.nessie.catalog-impl",
+        "org.apache.iceberg.nessie.NessieCatalog",
+    )
+    .config("spark.sql.catalog.nessie.uri", "http://nessie.nessie-ns.svc:19120/api/v1")
+    .config("spark.sql.catalog.nessie.ref", "main")
+    .config("spark.sql.catalog.nessie.authentication.type", "NONE")
+    .config(
+        "spark.sql.catalog.nessie.warehouse",
+        "hdfs://my-hadoop-hadoop-hdfs-nn.hadoop.svc.cluster.local:9000/iceberg_data",
+    )
     .getOrCreate()
 )
 
 namenode_url = "hdfs://my-hadoop-hadoop-hdfs-nn.hadoop.svc.cluster.local:9000"
-output_path = f"{namenode_url}/data/steam/reviews"
 checkpoint_path = f"{namenode_url}/checkpoints/steam_reviews"
 
 author_schema = StructType(
@@ -118,12 +133,12 @@ df_dedup = df_cleaned.withWatermark("timestamp_created", "1 day").dropDuplicates
 )
 
 query = (
-    df_dedup.writeStream.outputMode("append")
-    .format("parquet")
-    .option("path", output_path)
-    .option("checkpointLocation", checkpoint_path)
+    df_dedup.writeStream.format("iceberg")
+    .outputMode("append")
     .trigger(processingTime="1 minute")
-    .start()
+    .option("checkpointLocation", checkpoint_path)
+    .option("fanout-enabled", "true")
+    .toTable("nessie.silver.steam_reviews")
 )
 
 query.awaitTermination()

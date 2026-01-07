@@ -9,10 +9,28 @@ from pyspark.sql.types import (
     IntegerType,
 )
 
-spark = SparkSession.builder.appName("SteamMetricsCleanerStream").getOrCreate()
+spark = (
+    SparkSession.builder.appName("SteamMetricsCleanerStream")
+    .config(
+        "spark.sql.extensions",
+        "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions",
+    )
+    .config("spark.sql.catalog.nessie", "org.apache.iceberg.spark.SparkCatalog")
+    .config(
+        "spark.sql.catalog.nessie.catalog-impl",
+        "org.apache.iceberg.nessie.NessieCatalog",
+    )
+    .config("spark.sql.catalog.nessie.uri", "http://nessie.nessie-ns.svc:19120/api/v1")
+    .config("spark.sql.catalog.nessie.ref", "main")
+    .config("spark.sql.catalog.nessie.authentication.type", "NONE")
+    .config(
+        "spark.sql.catalog.nessie.warehouse",
+        "hdfs://my-hadoop-hadoop-hdfs-nn.hadoop.svc.cluster.local:9000/iceberg_data",
+    )
+    .getOrCreate()
+)
 
 namenode_url = "hdfs://my-hadoop-hadoop-hdfs-nn.hadoop.svc.cluster.local:9000"
-output_path = f"{namenode_url}/data/steam/history"
 checkpoint_path = f"{namenode_url}/checkpoints/steam_history"
 
 schema = StructType(
@@ -55,12 +73,12 @@ df_final = df_final.withWatermark("event_timestamp", "1 day").dropDuplicates(
 )
 
 query = (
-    df_final.writeStream.outputMode("append")
-    .format("parquet")
-    .option("path", output_path)
-    .option("checkpointLocation", checkpoint_path)
+    df_final.writeStream.format("iceberg")
+    .outputMode("append")
     .trigger(processingTime="1 minute")
-    .start()
+    .option("checkpointLocation", checkpoint_path)
+    .option("fanout-enabled", "true")
+    .toTable("nessie.silver.steam_history")
 )
 
 query.awaitTermination()

@@ -13,6 +13,32 @@ from pyspark.sql.types import (
 )
 import re
 
+spark = (
+    SparkSession.builder.appName("SteamGameCleanerStream")
+    .config("spark.sql.legacy.timeParserPolicy", "LEGACY")
+    .config(
+        "spark.sql.extensions",
+        "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions",
+    )
+    .config("spark.sql.catalog.nessie", "org.apache.iceberg.spark.SparkCatalog")
+    .config(
+        "spark.sql.catalog.nessie.catalog-impl",
+        "org.apache.iceberg.nessie.NessieCatalog",
+    )
+    .config("spark.sql.catalog.nessie.uri", "http://nessie.nessie-ns.svc:19120/api/v1")
+    .config("spark.sql.catalog.nessie.ref", "main")
+    .config("spark.sql.catalog.nessie.authentication.type", "NONE")
+    .config(
+        "spark.sql.catalog.nessie.warehouse",
+        "hdfs://my-hadoop-hadoop-hdfs-nn.hadoop.svc.cluster.local:9000/iceberg_data",
+    )
+    .getOrCreate()
+)
+
+namenode_url = "hdfs://my-hadoop-hadoop-hdfs-nn.hadoop.svc.cluster.local:9000"
+checkpoint_path = f"{namenode_url}/checkpoints/steam_clean_job"
+
+
 RATING_TO_AGE = {
     "ec": 3,
     "e": 6,
@@ -316,12 +342,6 @@ full_game_schema = StructType(
 )
 
 
-spark = (
-    SparkSession.builder.appName("SteamGameCleanerStream")
-    .config("spark.sql.legacy.timeParserPolicy", "LEGACY")
-    .getOrCreate()
-)
-
 raw_stream = (
     spark.readStream.format("kafka")
     .option(
@@ -334,15 +354,12 @@ raw_stream = (
 )
 
 df_str = raw_stream.select(F.col("value").cast("string").alias("json_payload"))
-
 df_map = df_str.select(
     F.from_json(F.col("json_payload"), MapType(StringType(), StringType())).alias(
         "data_map"
     )
 )
-
 df_exploded = df_map.select(F.explode("data_map").alias("appid", "json_value"))
-
 df_parsed = df_exploded.withColumn(
     "game", F.from_json(F.col("json_value"), full_game_schema)
 )
@@ -463,18 +480,14 @@ df_cleaned = df_parsed.select(
     ).alias("owners"),
 )
 
-output_path = (
-    "hdfs://my-hadoop-hadoop-hdfs-nn.hadoop.svc.cluster.local:9000/data/steam/cleaned"
-)
-checkpoint_path = "hdfs://my-hadoop-hadoop-hdfs-nn.hadoop.svc.cluster.local:9000/checkpoints/steam_clean_job"
 
 query = (
-    df_cleaned.writeStream.outputMode("append")
-    .format("parquet")
-    .option("path", output_path)
-    .option("checkpointLocation", checkpoint_path)
+    df_cleaned.writeStream.format("iceberg")
+    .outputMode("append")
     .trigger(processingTime="1 minute")
-    .start()
+    .option("checkpointLocation", checkpoint_path)
+    .option("fanout-enabled", "true")
+    .toTable("nessie.silver.steam_games")
 )
 
 query.awaitTermination()
