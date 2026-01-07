@@ -224,6 +224,7 @@ helm repo add bitnami https://charts.bitnami.com/bitnami
 helm repo add airflow-community https://airflow-helm.github.io/charts
 helm repo add spark-operator https://kubeflow.github.io/spark-operator
 helm repo add pfisterer https://pfisterer.github.io/apache-hadoop-helm/
+helm repo add nessie-helm https://charts.projectnessie.org
 helm repo update
 ```
 
@@ -237,7 +238,7 @@ helm install spark-operator spark-operator/spark-operator --namespace spark-oper
 helm install my-hadoop pfisterer/hadoop   --namespace hadoop   -f hdfs_values.yaml
 
 # Trino stuff
-helm install nessie projectnessie/nessie --namespace nessie-ns --create-namespace -f nessie-values.yaml
+helm install nessie nessie-helm/nessie --namespace nessie-ns --create-namespace -f nessie-values.yaml
 kubectl create configmap trino-hadoop-conf --namespace trino --from-file=core-site.xml=./core-site.xml --from-file=hdfs-site.xml=./hdfs-site.xml
 helm install my-trino trino/trino --namespace trino --create-namespace -f trino-values.yaml
 
