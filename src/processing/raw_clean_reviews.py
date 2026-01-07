@@ -1,46 +1,60 @@
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.types import (
-    StructType, StructField, StringType, LongType, 
-    DoubleType, BooleanType, IntegerType, TimestampType
+    StructType,
+    StructField,
+    StringType,
+    LongType,
+    DoubleType,
+    BooleanType,
+    IntegerType,
+    TimestampType,
 )
 
-spark = SparkSession.builder \
-    .appName("CleanSteamReviews") \
-    .config("spark.sql.caseSensitive", "false") \
+spark = (
+    SparkSession.builder.appName("CleanSteamReviewsStream")
+    .config("spark.sql.caseSensitive", "false")
     .getOrCreate()
+)
 
-input_path = "s3a://spark-scripts/570.jsonl"
-output_path = "s3a://spark-scripts/570.parquet"
+namenode_url = "hdfs://my-hadoop-hadoop-hdfs-nn.hadoop.svc.cluster.local:9000"
+output_path = f"{namenode_url}/data/steam/reviews"
+checkpoint_path = f"{namenode_url}/checkpoints/steam_reviews"
 
-author_schema = StructType([
-    StructField("steamid", StringType(), True),
-    StructField("num_games_owned", IntegerType(), True),
-    StructField("num_reviews", IntegerType(), True),
-    StructField("playtime_forever", LongType(), True),
-    StructField("playtime_last_two_weeks", LongType(), True),
-    StructField("playtime_at_review", LongType(), True),
-    StructField("last_played", LongType(), True)
-])
+author_schema = StructType(
+    [
+        StructField("steamid", StringType(), True),
+        StructField("num_games_owned", IntegerType(), True),
+        StructField("num_reviews", IntegerType(), True),
+        StructField("playtime_forever", LongType(), True),
+        StructField("playtime_last_two_weeks", LongType(), True),
+        StructField("playtime_at_review", LongType(), True),
+        StructField("last_played", LongType(), True),
+    ]
+)
 
-schema = StructType([
-    StructField("recommendationid", StringType(), True),
-    StructField("author", author_schema, True), 
-    StructField("language", StringType(), True),
-    StructField("review", StringType(), True),
-    StructField("timestamp_created", LongType(), True),
-    StructField("timestamp_updated", LongType(), True),
-    StructField("voted_up", BooleanType(), True),
-    StructField("votes_up", IntegerType(), True),
-    StructField("votes_funny", IntegerType(), True),
-    StructField("weighted_vote_score", DoubleType(), True),
-    StructField("comment_count", IntegerType(), True),
-    StructField("steam_purchase", BooleanType(), True),
-    StructField("received_for_free", BooleanType(), True),
-    StructField("written_during_early_access", BooleanType(), True),
-    StructField("primarily_steam_deck", BooleanType(), True)
-])
-df_raw = spark.read.schema(schema).option("mode", "PERMISSIVE").json(input_path)
+schema = StructType(
+    [
+        StructField("recommendationid", StringType(), True),
+        StructField("app_id", StringType(), True),
+        StructField("author", author_schema, True),
+        StructField("language", StringType(), True),
+        StructField("review", StringType(), True),
+        StructField("timestamp_created", LongType(), True),
+        StructField("timestamp_updated", LongType(), True),
+        StructField("voted_up", BooleanType(), True),
+        StructField("votes_up", IntegerType(), True),
+        StructField("votes_funny", IntegerType(), True),
+        StructField("weighted_vote_score", DoubleType(), True),
+        StructField("comment_count", IntegerType(), True),
+        StructField("steam_purchase", BooleanType(), True),
+        StructField("received_for_free", BooleanType(), True),
+        StructField("written_during_early_access", BooleanType(), True),
+        StructField("primarily_steam_deck", BooleanType(), True),
+    ]
+)
+
+
 def clean_review_text(col):
     c = F.regexp_replace(col, r"http\S+", "")
     c = F.regexp_replace(c, r"[\r\n\t]", " ")
@@ -50,23 +64,43 @@ def clean_review_text(col):
     c = F.regexp_replace(c, r"&nbsp;", " ")
     return F.trim(F.coalesce(c, F.lit("")))
 
-df_cleaned = df_raw.select(
+
+raw_stream = (
+    spark.readStream.format("kafka")
+    .option(
+        "kafka.bootstrap.servers", "my-kafka-cluster-kafka-bootstrap.kafka.svc:9092"
+    )
+    .option("subscribe", "steam-reviews-raw")
+    .option("startingOffsets", "earliest")
+    .option("maxOffsetsPerTrigger", 5000)
+    .load()
+)
+
+df_parsed = raw_stream.select(
+    F.from_json(F.col("value").cast("string"), schema).alias("data")
+).select("data.*")
+
+df_cleaned = df_parsed.select(
     F.col("recommendationid"),
-
+    F.col("app_id"),
     clean_review_text(F.col("review")).alias("review"),
-    
     F.col("author.steamid").alias("author_steamid"),
-
-    F.coalesce(F.col("author.num_games_owned"), F.lit(0)).alias("author_num_games_owned"),
+    F.coalesce(F.col("author.num_games_owned"), F.lit(0)).alias(
+        "author_num_games_owned"
+    ),
     F.coalesce(F.col("author.num_reviews"), F.lit(0)).alias("author_num_reviews"),
-    F.coalesce(F.col("author.playtime_forever"), F.lit(0)).alias("author_playtime_forever"),
-    F.coalesce(F.col("author.playtime_last_two_weeks"), F.lit(0)).alias("author_playtime_last_two_weeks"),
-    F.coalesce(F.col("author.playtime_at_review"), F.lit(0)).alias("author_playtime_at_review"),
-    
+    F.coalesce(F.col("author.playtime_forever"), F.lit(0)).alias(
+        "author_playtime_forever"
+    ),
+    F.coalesce(F.col("author.playtime_last_two_weeks"), F.lit(0)).alias(
+        "author_playtime_last_two_weeks"
+    ),
+    F.coalesce(F.col("author.playtime_at_review"), F.lit(0)).alias(
+        "author_playtime_at_review"
+    ),
     F.col("timestamp_created").cast(TimestampType()).alias("timestamp_created"),
     F.col("timestamp_updated").cast(TimestampType()).alias("timestamp_updated"),
     F.col("author.last_played").cast(TimestampType()).alias("author_last_played"),
-
     F.col("voted_up"),
     F.col("steam_purchase"),
     F.col("received_for_free"),
@@ -76,11 +110,20 @@ df_cleaned = df_raw.select(
     F.coalesce(F.col("votes_funny"), F.lit(0)).alias("votes_funny"),
     F.coalesce(F.col("weighted_vote_score"), F.lit(0.0)).alias("weighted_vote_score"),
     F.coalesce(F.col("comment_count"), F.lit(0)).alias("comment_count"),
-
-    F.col("language")
+    F.col("language"),
 )
 
-df_dedup = df_cleaned.dropDuplicates(["recommendationid"])
-df_dedup.write.mode("overwrite").parquet(output_path)
+df_dedup = df_cleaned.withWatermark("timestamp_created", "1 day").dropDuplicates(
+    ["recommendationid", "timestamp_created"]
+)
 
-print(f"Cleaned data saved to {output_path}")
+query = (
+    df_dedup.writeStream.outputMode("append")
+    .format("parquet")
+    .option("path", output_path)
+    .option("checkpointLocation", checkpoint_path)
+    .trigger(processingTime="1 minute")
+    .start()
+)
+
+query.awaitTermination()

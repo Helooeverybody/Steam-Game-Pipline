@@ -1,0 +1,49 @@
+apiVersion: "sparkoperator.k8s.io/v1beta2"
+kind: SparkApplication
+metadata:
+  name: spark-history
+  namespace: default
+spec:
+  type: Python
+  pythonVersion: "3"
+  mode: cluster
+  image: "frostedpilot/spark:latest"
+  sparkVersion: "3.5.4"
+
+  mainApplicationFile: "s3a://spark-scripts/raw_history.py"
+
+  restartPolicy:
+    type: Never
+
+  sparkConf:
+    "spark.sql.shuffle.partitions": "8"
+
+  hadoopConf:
+    "fs.s3a.endpoint": "http://minio.airflow.svc:9000"
+
+    "fs.s3a.access.key": "minioadmin"
+    "fs.s3a.secret.key": "minioadmin"
+    "fs.s3a.path.style.access": "true"
+    "fs.s3a.impl": "org.apache.hadoop.fs.s3a.S3AFileSystem"
+    "fs.s3a.connection.ssl.enabled": "false"
+
+  driver:
+    cores: 2
+    memory: "2g"
+    serviceAccount: spark-operator-spark
+    env:
+      - name: PYSPARK_PYTHON
+        value: /usr/bin/python3
+      - name: SPARK_VERSION
+        value: "3.5"
+    volumeMounts:
+      - name: ivy-cache
+        mountPath: /tmp
+
+  executor:
+    cores: 1
+    instances: 2
+    memory: "1g"
+    volumeMounts:
+      - name: ivy-cache
+        mountPath: /tmp
