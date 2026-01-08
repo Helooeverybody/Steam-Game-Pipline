@@ -10,7 +10,7 @@ spec:
   image: "frostedpilot/spark:latest"
   sparkVersion: "3.5.4"
 
-  mainApplicationFile: "s3a://spark-scripts/raw_review_clean.py"
+  mainApplicationFile: "s3a://spark-scripts/raw_clean_reviews.py"
 
   restartPolicy:
     type: Never

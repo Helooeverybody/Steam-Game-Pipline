@@ -36,6 +36,8 @@ spec:
         value: /usr/bin/python3
       - name: SPARK_VERSION
         value: "3.5"
+      - name: BACKFILL
+        value: "true"
     volumeMounts:
       - name: ivy-cache
         mountPath: /tmp

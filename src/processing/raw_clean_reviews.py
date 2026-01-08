@@ -11,6 +11,21 @@ from pyspark.sql.types import (
     TimestampType,
 )
 
+
+import os
+
+is_backfill = os.environ.get("BACKFILL", "false").lower() == "true"
+
+if is_backfill:
+    print("--- RUNNING IN BACKFILL MODE ---")
+    watermark_delay = "36500 days" 
+    trigger_params = {"availableNow": True}
+else:
+    print("--- RUNNING IN LIVE MODE ---")
+    watermark_delay = "6 hours"
+    trigger_params = {"processingTime": "1 minute"}
+
+
 spark = (
     SparkSession.builder.appName("CleanSteamReviewsStream")
     .config("spark.sql.caseSensitive", "false")
@@ -128,14 +143,14 @@ df_cleaned = df_parsed.select(
     F.col("language"),
 )
 
-df_dedup = df_cleaned.withWatermark("timestamp_created", "1 day").dropDuplicates(
+df_dedup = df_cleaned.withWatermark("timestamp_created", watermark_delay).dropDuplicates(
     ["recommendationid", "timestamp_created"]
 )
 
 query = (
     df_dedup.writeStream.format("iceberg")
     .outputMode("append")
-    .trigger(processingTime="1 minute")
+    .trigger(**trigger_params)
     .option("checkpointLocation", checkpoint_path)
     .option("fanout-enabled", "true")
     .toTable("nessie.silver.steam_reviews")

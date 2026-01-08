@@ -1,7 +1,7 @@
 apiVersion: "sparkoperator.k8s.io/v1beta2"
 kind: SparkApplication
 metadata:
-  name: spark-history
+  name: spark-review
   namespace: default
 spec:
   type: Python
@@ -10,7 +10,7 @@ spec:
   image: "frostedpilot/spark:latest"
   sparkVersion: "3.5.4"
 
-  mainApplicationFile: "s3a://spark-scripts/raw_clean_history.py"
+  mainApplicationFile: "s3a://spark-scripts/raw_clean_reviews.py"
 
   restartPolicy:
     type: Never
@@ -20,7 +20,6 @@ spec:
 
   hadoopConf:
     "fs.s3a.endpoint": "http://minio.airflow.svc:9000"
-
     "fs.s3a.access.key": "minioadmin"
     "fs.s3a.secret.key": "minioadmin"
     "fs.s3a.path.style.access": "true"
@@ -36,6 +35,8 @@ spec:
         value: /usr/bin/python3
       - name: SPARK_VERSION
         value: "3.5"
+      - name: BACKFILL
+        value: "true"
     volumeMounts:
       - name: ivy-cache
         mountPath: /tmp
