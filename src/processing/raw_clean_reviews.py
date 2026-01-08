@@ -144,7 +144,7 @@ df_cleaned = df_parsed.select(
 )
 
 df_dedup = df_cleaned.withWatermark("timestamp_created", watermark_delay).dropDuplicates(
-    ["recommendationid", "timestamp_created"]
+    ["recommendationid"]
 )
 
 query = (
