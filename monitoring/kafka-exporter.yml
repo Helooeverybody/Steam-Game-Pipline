@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-exporter
+  namespace: monitoring
+  labels:
+    app: kafka-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka-exporter
+  template:
+    metadata:
+      labels:
+        app: kafka-exporter
+    spec:
+      containers:
+        - name: kafka-exporter
+          image: danielqsj/kafka-exporter:latest
+          args:
+            - --kafka.server=my-kafka-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092
+            - --web.listen-address=:9308
+            - --topic.filter=.*
+            - --group.filter=.*
+          ports:
+            - containerPort: 9308
+              name: metrics
+      nodeSelector:
+        device: ngo
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-exporter
+  namespace: monitoring
+  labels:
+    app: kafka-exporter
+spec:
+  ports:
+    - name: metrics
+      port: 9308
+      targetPort: 9308
+  selector:
+    app: kafka-exporter

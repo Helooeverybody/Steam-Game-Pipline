@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb-exporter
+  namespace: database
+  labels:
+    app: mongodb-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongodb-exporter
+  template:
+    metadata:
+      labels:
+        app: mongodb-exporter
+    spec:
+      containers:
+        - name: mongodb-exporter
+          image: percona/mongodb_exporter:0.40
+          args:
+            - --mongodb.uri=mongodb://root:password@my-mongodb:27017/admin?directConnection=true&ssl=false
+            - --mongodb.collstats-colls=steam_analytics.*
+            - --collect-all
+            - --compatible-mode
+          ports:
+            - containerPort: 9216
+      nodeSelector:
+        device: ngo
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-exporter
+  namespace: database
+  labels:
+    app: mongodb-exporter
+spec:
+  ports:
+    - name: metrics
+      port: 9216
+      targetPort: 9216
+  selector:
+    app: mongodb-exporter

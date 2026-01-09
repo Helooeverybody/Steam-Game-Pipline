@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongo-express
+  namespace: database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongo-express
+  template:
+    metadata:
+      labels:
+        app: mongo-express
+    spec:
+      containers:
+      - name: mongo-express
+        image: mongo-express:latest
+        ports:
+        - containerPort: 8081
+        env:
+        - name: ME_CONFIG_MONGODB_URL
+          value: mongodb://root:password@my-mongodb:27017/
+        - name: ME_CONFIG_BASICAUTH
+          value: "false"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo-express
+  namespace: database
+spec:
+  ports:
+  - port: 8081
+    targetPort: 8081
+  selector:
+    app: mongo-express

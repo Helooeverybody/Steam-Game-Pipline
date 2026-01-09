@@ -1,0 +1,42 @@
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+{
+  "manifestVersion": "2.0.0",
+  "signatureType": "community",
+  "signedByOrg": "trino",
+  "signedByOrgName": "trino",
+  "plugin": "trino-datasource",
+  "version": "1.0.11",
+  "time": 1744189726641,
+  "keyId": "7e4d0c6a708866e7",
+  "files": {
+    "LICENSE": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1",
+    "CHANGELOG.md": "6883600734d094ed34bedcf488c7c35b2de4c4d83fc5cb489e028cdd4dc60af2",
+    "img/logo.svg": "d1dd400467040aaa53d908d3ea743579874625d46d5223f6f1ea7568ae169caa",
+    "img/explore.png": "e9814aaa78c74565087c0d15cebf427b6eeec71edfeb10049fea243000e026f5",
+    "README.md": "5be5de8ad3fa77ffd9da2d125d5f4bb10536a5782fa04a77aad9ea41211934cf",
+    "module.js.map": "9c66238ded406440df7b05344fd647821b0d4fd71c3bb7c4fd3b77d81caa682b",
+    "gpx_Trino_darwin_amd64": "af16ec0d4b1965fcc0bc5777d4177b7ba95ee08a9927235669f8e9babcf214bd",
+    "gpx_Trino_linux_amd64": "06d339ef0ae24212207aac268ac2f8ff7a94afa07b946646bb88113047fa8411",
+    "gpx_Trino_linux_arm": "4875509544067d58efc54ec323dd8ca1857212cfd2ef2ddf92cb175278b44ae9",
+    "gpx_Trino_linux_arm64": "3c9226add855f065df6ed400c4844b3f1ce4978fc96e96fcc1a651de4214283f",
+    "gpx_Trino_windows_amd64.exe": "293b7ea500ab066c3d29105a655969145580a77a7840c7a8b0ef742a147ca7d7",
+    "plugin.json": "05a917eaaaea3d0dc3bc52a0bce703919657bf04b00b6d621f1a96c53b448ab7",
+    "gpx_Trino_darwin_arm64": "008a6fa8caa39932645c2ec37e9adb6bf39044de8ebf7d05b2e6f3b8b2d0feff",
+    "module.js": "beda18afc2bbdbdb3030b633f7a45f61cdd612fe90bdcba86150bb6c95d5cc8e",
+    "go_plugin_build_manifest": "bb89e7a58d3703082ef35d3a473ae8214113dc8e6a80242c710e56259c79c3fc"
+  }
+}
+-----BEGIN PGP SIGNATURE-----
+Version: OpenPGP.js v4.10.11
+Comment: https://openpgpjs.org
+
+wrkEARMKAAYFAmf2OR4AIQkQfk0ManCIZucWIQTzOyW2kQdOhGNlcPN+TQxq
+cIhm53bYAgkBUDP2LZPgrjkh6xpCJUrR4LCKFa9Lt52IjhO2sety8QjJNz7J
+H0E+SDO7s65fCFZEpZRCfbOd+JfJq1rulQvqijQCCQE/FpZE7ZJj3aveKtuI
+NGViwSo2E3FUehsqRhJiOUBpjToM6dQYteNHB2uNTdBsWm7xXRKksNrCZuTc
+Jj1xOxVl6g==
+=K7KO
+-----END PGP SIGNATURE-----
