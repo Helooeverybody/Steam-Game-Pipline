@@ -1,0 +1,48 @@
+image:
+  tag: "435"
+
+server:
+  workers: 2
+  config:
+    query:
+      max-memory: "1GB"
+  jvm:
+    max-heap-size: "1G"
+
+coordinator:
+  additionalVolumes:
+    - name: hadoop-conf
+      configMap:
+        name: trino-hadoop-conf
+  additionalVolumeMounts:
+    - name: hadoop-conf
+      mountPath: /etc/hadoop/conf
+      readOnly: true
+
+worker:
+  additionalVolumes:
+    - name: hadoop-conf
+      configMap:
+        name: trino-hadoop-conf
+  additionalVolumeMounts:
+    - name: hadoop-conf
+      mountPath: /etc/hadoop/conf
+      readOnly: true
+
+additionalCatalogs:
+  nessie: |
+    connector.name=iceberg
+    iceberg.catalog.type=nessie
+    iceberg.nessie-catalog.uri=http://nessie.nessie-ns.svc:19120/api/v1
+    iceberg.nessie-catalog.ref=main
+    iceberg.file-format=PARQUET
+    iceberg.nessie-catalog.default-warehouse-dir=hdfs://my-hadoop-hadoop-hdfs-nn.hadoop.svc.cluster.local:9000/iceberg_data
+
+    fs.hadoop.enabled=true
+    hive.config.resources=/etc/hadoop/conf/core-site.xml,/etc/hadoop/conf/hdfs-site.xml
+
+  kafka: |
+    connector.name=kafka
+    kafka.nodes=my-kafka-kafka-controller.kafka.svc:9092
+    kafka.table-names=steam-reviews-raw,steam-games-raw
+    kafka.hide-internal-columns=false

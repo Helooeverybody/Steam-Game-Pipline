@@ -16,7 +16,6 @@ NESSIE_URI = "http://nessie.nessie-ns.svc:19120/api/v1"
 
 def get_spark_session(app_name="GoldKappaStreamOptimized"):
     return (
-        
         SparkSession.builder.appName(app_name)
         .config(
             "spark.sql.extensions",
