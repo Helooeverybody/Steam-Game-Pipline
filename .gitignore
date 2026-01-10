@@ -215,4 +215,5 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-new_new_data/
+*.jsonl
+*.rar
