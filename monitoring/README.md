@@ -24,6 +24,7 @@ Open http://localhost:3000 in your browser, you will see Grafana UI.
 - Select the **MongoDB** plugin
 - Configure Connection
 All settings has been filled by default. Choose **Authentication Method**: UserName/Password and click **Save & Test** to verify the connection.
+
 | Setting | Value |
 |---------|-------|
 | **URL** | `mongodb://mongodb.default.svc.cluster.local:27017` |
@@ -133,4 +134,5 @@ k3s kubectl port-forward svc/mongo-express 8081:8081 -n database
 
 # Port forward Prometheus 
 k3s kubectl port-forward svc/prometheus 9090:9090 -n monitoring
+
 ```
