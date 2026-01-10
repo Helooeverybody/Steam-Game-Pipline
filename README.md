@@ -225,6 +225,7 @@ helm repo add airflow-community https://airflow-helm.github.io/charts
 helm repo add spark-operator https://kubeflow.github.io/spark-operator
 helm repo add pfisterer https://pfisterer.github.io/apache-hadoop-helm/
 helm repo add nessie-helm https://charts.projectnessie.org
+helm repo add strimzi https://strimzi.io/charts/
 helm repo update
 ```
 
@@ -232,7 +233,6 @@ Deploy the applications
 
 ```bash
 helm install my-mongodb bitnami/mongodb --namespace database --create-namespace -f mongodb-values.yaml
-helm install kafka bitnami/kafka --values kafka-values.yaml
 helm install airflow airflow-community/airflow --namespace airflow -f airflow-values-lite.yaml
 helm install spark-operator spark-operator/spark-operator --namespace spark-operator --set sparkJobNamespace="" --set webhook.enable=true
 helm install my-hadoop pfisterer/hadoop   --namespace hadoop   -f hdfs_values.yaml
