@@ -1,0 +1,641 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 0,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "haohanyang-mongodb-datasource",
+        "uid": "mongodb-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 0,
+        "y": 0
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "valueSize": 150
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "collection": "game_dev",
+          "queryText": "[\r\n  { \"$match\": { \"developer\": \"$dev\" } },\r\n  {\r\n    \"$project\": {\r\n      \"_id\": 0,\r\n      \"value\": \"$total_games\"\r\n    }\r\n  }\r\n]",
+          "refId": "A"
+        }
+      ],
+      "title": "Games",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "haohanyang-mongodb-datasource",
+        "uid": "mongodb-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 3,
+        "x": 3,
+        "y": 0
+      },
+      "id": 7,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {},
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "collection": "game_dev",
+          "queryText": "[\r\n  { \"$match\": { \"developer\": \"$dev\" } },\r\n  {\r\n    \"$project\": {\r\n      \"_id\": 0,\r\n      \"value\": \"$total_positive_reviews\"\r\n    }\r\n  }\r\n]",
+          "refId": "A"
+        }
+      ],
+      "title": "Total Positive Reviews",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "haohanyang-mongodb-datasource",
+        "uid": "mongodb-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "log": 2,
+              "type": "log"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "blue",
+                "value": 60
+              },
+              {
+                "color": "#EAB839",
+                "value": 180
+              },
+              {
+                "color": "orange",
+                "value": 300
+              },
+              {
+                "color": "#6ED0E0",
+                "value": 600
+              },
+              {
+                "color": "red",
+                "value": 1440
+              }
+            ]
+          },
+          "unit": "m"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 18,
+        "x": 6,
+        "y": 0
+      },
+      "id": 3,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "horizontal",
+        "showValue": "auto",
+        "stacking": "none",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        },
+        "xField": "game",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 100
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "collection": "game_dev",
+          "datasource": {
+            "type": "haohanyang-mongodb-datasource",
+            "uid": "mongodb-ds"
+          },
+          "queryLanguage": "json",
+          "queryText": "[\r\n  {\r\n    \"$match\": {\r\n      \"developer\": \"$dev\"\r\n    }\r\n  },\r\n  { \"$unwind\": \"$top_games_by_playtime\" },\r\n  {\r\n    \"$group\": {\r\n      \"_id\": \"$top_games_by_playtime.name\",\r\n      \"max_playtime\": { \r\n        \"$max\": { \"$ifNull\": [\"$top_games_by_playtime.value\", 0] } \r\n      }\r\n    }\r\n  },\r\n  {\r\n    \"$project\": {\r\n      \"_id\": 0,\r\n      \"game\": \"$_id\",\r\n      \"playtime\": \"$max_playtime\"\r\n    }\r\n  },\r\n  { \"$sort\": { \"playtime\": -1 } }\r\n]",
+          "refId": "A"
+        }
+      ],
+      "title": "Top  games by average playtime",
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "haohanyang-mongodb-datasource",
+        "uid": "mongodb-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#eaf5e8",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 3,
+        "x": 0,
+        "y": 5
+      },
+      "id": 8,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "valueSize": 150
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "collection": "game_dev",
+          "queryText": "[\r\n  { \"$match\": { \"developer\": \"$dev\" } },\r\n  {\r\n    \"$project\": {\r\n      \"_id\": 0,\r\n      \"value\": \"$total_free_games\"\r\n    }\r\n  }\r\n]",
+          "refId": "A"
+        }
+      ],
+      "title": "Free Games",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "haohanyang-mongodb-datasource",
+        "uid": "mongodb-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "max": 60,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "yellow",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "currencyUSD"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 3,
+        "x": 3,
+        "y": 5
+      },
+      "id": 6,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "collection": "game_dev",
+          "queryText": "[\r\n  { \"$match\": { \"developer\": \"$dev\" } },\r\n  {\r\n    \"$project\": {\r\n      \"_id\": 0,\r\n      \"value\": \"$avg_price\"\r\n    }\r\n  }\r\n]",
+          "refId": "A"
+        }
+      ],
+      "title": "Average Price",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "haohanyang-mongodb-datasource",
+        "uid": "mongodb-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "index": 0,
+                  "text": "Free to Play"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "blue",
+                "value": 10
+              },
+              {
+                "color": "orange",
+                "value": 25
+              },
+              {
+                "color": "#EAB839",
+                "value": 50
+              }
+            ]
+          },
+          "unit": "currencyUSD"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 13,
+        "w": 11,
+        "x": 0,
+        "y": 11
+      },
+      "id": 2,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "horizontal",
+        "showValue": "auto",
+        "stacking": "none",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        },
+        "xField": "game",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 100
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "collection": "game_dev",
+          "datasource": {
+            "type": "haohanyang-mongodb-datasource",
+            "uid": "mongodb-ds"
+          },
+          "queryLanguage": "json",
+          "queryText": "[\r\n  {\r\n    \"$match\": {\r\n      \"developer\": \"$dev\"\r\n    }\r\n  },\r\n  { \"$unwind\": \"$top_games_by_price\" },\r\n  {\r\n    \"$group\": {\r\n      \"_id\": \"$top_games_by_price.name\",\r\n      \"max_price\": { \r\n        \"$max\": { \"$ifNull\": [\"$top_games_by_price.value\", 0] } \r\n      }\r\n    }\r\n  },\r\n  {\r\n    \"$project\": {\r\n      \"_id\": 0,\r\n      \"game\": \"$_id\",\r\n      \"price\": \"$max_price\"\r\n    }\r\n  },\r\n  { \"$sort\": { \"price\": -1 } }\r\n]",
+          "refId": "A"
+        }
+      ],
+      "title": "Top highest price games",
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "haohanyang-mongodb-datasource",
+        "uid": "mongodb-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "log": 10,
+              "type": "log"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "blue",
+                "value": 100
+              },
+              {
+                "color": "#EAB839",
+                "value": 1000
+              },
+              {
+                "color": "orange",
+                "value": 10000
+              },
+              {
+                "color": "#6ED0E0",
+                "value": 50000
+              },
+              {
+                "color": "super-light-red",
+                "value": 100000
+              },
+              {
+                "color": "light-red",
+                "value": 1000000
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 13,
+        "w": 13,
+        "x": 11,
+        "y": 11
+      },
+      "id": 4,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "horizontal",
+        "showValue": "auto",
+        "stacking": "none",
+        "text": {},
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        },
+        "xField": "game",
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 100
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "collection": "game_dev",
+          "datasource": {
+            "type": "haohanyang-mongodb-datasource",
+            "uid": "mongodb-ds"
+          },
+          "queryLanguage": "json",
+          "queryText": "[\r\n  {\r\n    \"$match\": {\r\n      \"developer\": \"$dev\"\r\n    }\r\n  },\r\n  { \"$unwind\": \"$top_games_by_positive\" },\r\n  {\r\n    \"$group\": {\r\n      \"_id\": \"$top_games_by_positive.name\",\r\n      \"max_positive\": { \r\n        \"$max\": { \"$ifNull\": [\"$top_games_by_positive.value\", 0] } \r\n      }\r\n    }\r\n  },\r\n  {\r\n    \"$project\": {\r\n      \"_id\": 0,\r\n      \"game\": \"$_id\",\r\n      \"reviews\": \"$max_positive\"\r\n    }\r\n  },\r\n  { \"$sort\": { \"reviews\": -1 } }\r\n]",
+          "refId": "A"
+        }
+      ],
+      "title": "Most positive reviewed games",
+      "type": "barchart"
+    }
+  ],
+  "preload": false,
+  "schemaVersion": 42,
+  "tags": [],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "text": "Valve",
+          "value": "Valve"
+        },
+        "definition": "",
+        "label": "Developer",
+        "name": "dev",
+        "options": [],
+        "query": {
+          "collection": "game_dev",
+          "queryText": "[\r\n  {\r\n    \"$match\": {\r\n      \"developer\": { \"$exists\": true, \"$ne\": null, \"$ne\": \"\" }\r\n    }\r\n  },\r\n  {\r\n    \"$group\": {\r\n      \"_id\": \"$developer\"\r\n    }\r\n  },\r\n  {\r\n    \"$project\": {\r\n      \"_id\": 0,\r\n      \"text\": \"$_id\",\r\n      \"value\": \"$_id\"\r\n    }\r\n  },\r\n  {\r\n    \"$sort\": {\r\n      \"text\": 1\r\n    }\r\n  }\r\n]"
+        },
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Dev Inspect",
+  "uid": "gx75dr",
+  "version": 25
+}
