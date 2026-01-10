@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: monitoring
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+
+    scrape_configs:
+      # Job 1: Monitor Prometheus itself
+      - job_name: 'prometheus'
+        static_configs:
+          - targets: ['localhost:9090']
+
+      # Job 2: Monitor MongoDB Exporter (cross-namespace)
+      - job_name: 'mongodb'
+        static_configs:
+          - targets: ['mongodb-exporter.database.svc.cluster.local:9216']
+
+      # Job 3: Monitor Kafka Exporter
+      - job_name: 'kafka'
+        static_configs:
+          - targets: ['kafka-exporter:9308']
