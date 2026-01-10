@@ -10,8 +10,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 
-# --- CONFIGURATION ---
-OUTPUT_FILE_MONTHLY = 'historical_player_counts_monthly.jsonl'
+# --- CONFIGURATION (relative to repository root - run scripts from repo root) ---
+OUTPUT_FILE_MONTHLY = 'data/raw/historical_player_counts_monthly.jsonl'
 TARGET_APP_IDS = [
     "578080",  # 1. PUBG: BATTLEGROUNDS
     "2358720", # 2. Black Myth: Wukong

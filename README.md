@@ -232,24 +232,24 @@ helm repo update
 Deploy the applications
 
 ```bash
-helm install my-mongodb bitnami/mongodb --namespace database --create-namespace -f mongodb-values.yaml
-helm install airflow airflow-community/airflow --namespace airflow -f airflow-values-lite.yaml
+helm install my-mongodb bitnami/mongodb --namespace database --create-namespace -f deploy/helm/mongodb-values.yaml
+helm install airflow airflow-community/airflow --namespace airflow -f deploy/helm/airflow-values.yaml
 helm install spark-operator spark-operator/spark-operator --namespace spark-operator --set sparkJobNamespace="" --set webhook.enable=true
-helm install my-hadoop pfisterer/hadoop   --namespace hadoop   -f hdfs_values.yaml
+helm install my-hadoop pfisterer/hadoop   --namespace hadoop   -f deploy/helm/hdfs_values.yaml
 
 # Trino stuff
-helm install nessie nessie-helm/nessie --namespace nessie-ns --create-namespace -f nessie-values.yaml
+helm install nessie nessie-helm/nessie --namespace nessie-ns --create-namespace -f deploy/helm/nessie-values.yaml
 kubectl create configmap trino-hadoop-conf --namespace trino --from-file=core-site.xml=./core-site.xml --from-file=hdfs-site.xml=./hdfs-site.xml
-helm install my-trino trino/trino --namespace trino --create-namespace -f trino-values.yaml
+helm install my-trino trino/trino --namespace trino --create-namespace -f deploy/helm/trino-values.yaml
 
-# Provide the same function as hadoop, but easier to use, for dev prupose only
-helm install minio bitnami/minio   --namespace airflow   --values minio_values.yaml
+# Provide the same function as hadoop, but easier to use, for dev purpose only
+helm install minio bitnami/minio   --namespace airflow   --values deploy/helm/minio_values.yaml
 
 # Kafka (Strimzi Operator + KRaft Cluster)
 helm install strimzi-kafka-operator strimzi/strimzi-kafka-operator --namespace strimzi --create-namespace
 # Wait for operator to start, then apply cluster and topics:
-kubectl apply -f kafka-cluster.yaml -n kafka
-kubectl apply -f kafka-topics.yaml -n kafka
+kubectl apply -f deploy/kafka/kafka-cluster.yaml -n kafka
+kubectl apply -f deploy/kafka/kafka-topics.yaml -n kafka
 
 # Redis (State Store) - Using Legacy Image for stability
 helm install redis bitnami/redis \
@@ -259,7 +259,7 @@ helm install redis bitnami/redis \
   --set image.tag=8.2-debian-12 \
   --set architecture=standalone
 
-helm install airflow airflow-community/airflow --namespace airflow -f airflow-values.yaml
+helm install airflow airflow-community/airflow --namespace airflow -f deploy/helm/airflow-values.yaml
 
 ```
 
@@ -291,8 +291,8 @@ Perform these steps from the root of the project on your local machine.
 
 *   **Run Bootstrap Scripts:**
     1.  Open a tunnel to Redis: `kubectl port-forward redis-master-0 6379:6379 -n redis`
-    2.  Run Redis Bootstrap: `python bootstrap_redis.py`
-    3.  Run Kafka Backfill: `python bootstrap_data.py` (Ensure you updated the IP:PORT inside the script).
+    2.  Run Redis Bootstrap: `python scripts/bootstrap/bootstrap_redis.py`
+    3.  Run Kafka Backfill: `python scripts/bootstrap/bootstrap_data.py` (Ensure you updated the IP:PORT inside the script).
 
 ---
 
@@ -301,17 +301,17 @@ Perform these steps from the root of the project on your local machine.
 We deploy Dockerized Python producers to continuously ingest live data.
 
 **1. Build & Push Images**
-Navigate to each producer folder (`player-count-producer`, `live-review-producer`, `game-catalog-producer`), build the Docker image, and push it to your registry.
+Navigate to each producer folder (`src/producers/player_count`, `src/producers/live_review`, `src/producers/game_catalog`), build the Docker image, and push it to your registry.
 
 This step can be skipped as the images are already built.
 
 **2. Apply Deployments**
-Deploy the long-running services to the cluster using the YAML files in the root directory.
+Deploy the long-running services to the cluster using the YAML files in the deploy/producers directory.
 
 ```bash
-kubectl apply -f deploy-player-count-producer.yaml
-kubectl apply -f deploy-live-review-producer.yaml
-kubectl apply -f deploy-game-catalog-producer.yaml
+kubectl apply -f deploy/producers/deploy-player-count-producer.yaml
+kubectl apply -f deploy/producers/deploy-live-review-producer.yaml
+kubectl apply -f deploy/producers/deploy-game-catalog-producer.yaml
 ```
 
 **3. Verification**

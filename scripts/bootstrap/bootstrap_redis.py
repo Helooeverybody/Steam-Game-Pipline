@@ -14,9 +14,9 @@ REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
 REDIS_PORT = int(os.getenv('REDIS_PORT', 6379))
 REDIS_PASSWORD = os.getenv('REDIS_PASSWORD')
 
-# Paths to your local backfill data
-GAMES_FILE_PATH = 'steam_apps_dataset_raw.jsonl'
-REVIEWS_DIR_PATH = 'top_10_reviews_raw'
+# Paths to your local backfill data (relative to repository root - run scripts from repo root)
+GAMES_FILE_PATH = 'data/raw/steam_apps_dataset_raw.jsonl'
+REVIEWS_DIR_PATH = 'data/raw/reviews'
 
 # Redis Keys (Must match what is in your Producer scripts)
 REDIS_KEY_SCRAPED = 'steam:apps:scraped'

@@ -7,10 +7,10 @@ import sys
 import os
 import datetime as dt
 
-# --- CONFIGURATION ---
-APPS_FILE_JSONL = 'steam_apps_dataset_raw.jsonl'
-APP_LIST_FILE = 'applist.cache.json'
-FAILED_FILE = 'failed_apps.json'
+# --- CONFIGURATION (relative to repository root - run scripts from repo root) ---
+APPS_FILE_JSONL = 'data/raw/steam_apps_dataset_raw.jsonl'
+APP_LIST_FILE = 'data/cache/applist.cache.json'
+FAILED_FILE = 'data/state/failed_apps.json'
 
 # --- API ENDPOINTS ---
 STEAM_APP_LIST_URL = 'https://api.steampowered.com/ISteamApps/GetAppList/v2/'

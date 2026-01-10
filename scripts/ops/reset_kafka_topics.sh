@@ -42,8 +42,10 @@ echo ""
 echo "Recreating Kafka topics..."
 
 # Now, we re-apply our original topic definitions.
-# This assumes you have the 'kafka-topics.yaml' file in the same directory.
-TOPIC_DEFINITION_FILE="kafka-topics.yaml"
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+TOPIC_DEFINITION_FILE="$REPO_ROOT/deploy/kafka/kafka-topics.yaml"
 
 if [ -f "$TOPIC_DEFINITION_FILE" ]; then
   kubectl apply -f "$TOPIC_DEFINITION_FILE" -n "$NAMESPACE"

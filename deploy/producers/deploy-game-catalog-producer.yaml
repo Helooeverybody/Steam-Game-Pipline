@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: game-catalog-producer
+  labels:
+    app: game-catalog-producer
+spec:
+  replicas: 1 # We only need one instance of this producer running
+  selector:
+    matchLabels:
+      app: game-catalog-producer
+  template:
+    metadata:
+      labels:
+        app: game-catalog-producer
+    spec:
+      nodeSelector:
+        device: tung
+      containers:
+      - name: producer
+        # --- IMPORTANT ---
+        # Replace this with the actual name of the image you pushed
+        image: sylvis/steam-game-catalog-producer:v4.0
+        
+        # --- Configuration via Environment Variables ---
+        env:
+        # 1. Point the producer to the internal Kafka service address
+        - name: KAFKA_BOOTSTRAP_SERVERS
+          # Format: <service-name>.<namespace>.svc.cluster.local:<port>
+          value: "my-kafka-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092"
+        
+        # 2. Point the producer to the internal Redis service address
+        - name: REDIS_HOST
+          value: "redis-master.redis.svc.cluster.local"
+
+        # 3. Securely inject the Redis password from the secret you created
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-secret  # The name of the secret you created
+              key: password       # The key within that secret
+        - name: STEAM_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: steam-api-secrets
+              key: api-key

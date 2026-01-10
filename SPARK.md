@@ -51,7 +51,7 @@ executor:
 
 ```bash
 k3s kubectl delete sparkapplication <<job_id_in_yaml_file>> -n default --ignore-not-found
-k3s kubectl apply -f sample_spark_operator_file.yaml
+k3s kubectl apply -f deploy/spark/sample_spark_operator_file.yaml
 ```
 
 Wait for the container to be created, then check the log

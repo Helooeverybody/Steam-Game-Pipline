@@ -1,9 +1,9 @@
 import json
 import os
 
-# Configuration
-INPUT_FILE = 'steam_apps_dataset_raw.jsonl'
-OUTPUT_FILE = 'top_10k_games_by_owners.jsonl'
+# Configuration (relative to repository root - run scripts from repo root)
+INPUT_FILE = 'data/raw/steam_apps_dataset_raw.jsonl'
+OUTPUT_FILE = 'data/raw/top_10k_games_by_owners.jsonl'
 TOP_N = 10000
 
 def log(message):

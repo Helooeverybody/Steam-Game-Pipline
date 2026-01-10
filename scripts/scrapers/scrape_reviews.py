@@ -7,10 +7,10 @@ import sys
 import os
 import datetime as dt
 
-# --- CONFIGURATION ---
-REVIEWS_DIR = 'top_10_reviews_raw'
-# This new file will store our progress (the last cursor for each game)
-STATE_FILE = 'scraping_state.json'
+# --- CONFIGURATION (relative to repository root - run scripts from repo root) ---
+REVIEWS_DIR = 'data/raw/reviews'
+# This file stores our scraping progress (the last cursor for each game)
+STATE_FILE = 'data/state/scraping_state.json'
 
 TOP_10_APP_IDS = [
     "578080",  # 1. PUBG: BATTLEGROUNDS

@@ -8,10 +8,10 @@ from kafka.errors import NoBrokersAvailable, TopicAlreadyExistsError, UnknownTop
 # --- CONFIGURATION ---
 KAFKA_BOOTSTRAP_SERVERS = '100.111.128.57:32565'
 
-# Data Paths
-GAMES_FILE_PATH = 'top_10k_games_by_owners.jsonl'  # Filtered top 10k games by owners
-REVIEWS_DIR_PATH = 'top_10_reviews_raw'
-PLAYER_COUNTS_FILE_PATH = 'historical_player_counts_monthly.jsonl'
+# Data Paths (relative to repository root - run scripts from repo root)
+GAMES_FILE_PATH = 'data/raw/top_10k_games_by_owners.jsonl'  # Filtered top 10k games by owners
+REVIEWS_DIR_PATH = 'data/raw/reviews'
+PLAYER_COUNTS_FILE_PATH = 'data/raw/historical_player_counts_monthly.jsonl'
 
 # Topic Names & Configs
 # We define configs here to ensure they are recreated correctly
