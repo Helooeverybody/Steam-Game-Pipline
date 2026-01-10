@@ -1,49 +1,52 @@
 apiVersion: "sparkoperator.k8s.io/v1beta2"
-kind: SparkApplication
+kind: ScheduledSparkApplication
 metadata:
   name: dq-game
   namespace: default
 spec:
-  type: Python
-  pythonVersion: "3"
-  mode: cluster
-  image: "frostedpilot/spark:latest"
-  sparkVersion: "3.5.4"
+  # Cron schedule: Runs every 3 hours (00:00, 03:00, 06:00, etc.)
+  schedule: "0 */3 * * *"
+  concurrencyPolicy: Forbid
+  successfulRunHistoryLimit: 1
+  failedRunHistoryLimit: 3
 
-  mainApplicationFile: "s3a://spark-scripts/dq_game.py"
+  template:
+    type: Python
+    pythonVersion: "3"
+    mode: cluster
+    image: "frostedpilot/spark:latest"
+    sparkVersion: "3.5.4"
 
-  restartPolicy:
-    type: Never
+    mainApplicationFile: "local:///opt/spark/app/dq_game.py"
 
-  sparkConf:
-    "spark.sql.shuffle.partitions": "8"
+    restartPolicy:
+      type: Never
 
-  hadoopConf:
-    "fs.s3a.endpoint": "http://minio.airflow.svc:9000"
+    sparkConf:
+      "spark.sql.shuffle.partitions": "8"
 
-    "fs.s3a.access.key": "minioadmin"
-    "fs.s3a.secret.key": "minioadmin"
-    "fs.s3a.path.style.access": "true"
-    "fs.s3a.impl": "org.apache.hadoop.fs.s3a.S3AFileSystem"
-    "fs.s3a.connection.ssl.enabled": "false"
+    driver:
+      cores: 1
+      memory: "512M"
+      serviceAccount: spark-operator-spark
+      env:
+        - name: PYSPARK_PYTHON
+          value: /usr/bin/python3
+        - name: SPARK_VERSION
+          value: "3.5"
+      volumeMounts:
+        - name: ivy-cache
+          mountPath: /tmp
 
-  driver:
-    cores: 1
-    memory: "512M"
-    serviceAccount: spark-operator-spark
-    env:
-      - name: PYSPARK_PYTHON
-        value: /usr/bin/python3
-      - name: SPARK_VERSION
-        value: "3.5"
-    volumeMounts:
+    executor:
+      cores: 1
+      instances: 1
+      memory: "1g"
+      volumeMounts:
+        - name: ivy-cache
+          mountPath: /tmp
+
+    # Definition required for the volumeMounts above
+    volumes:
       - name: ivy-cache
-        mountPath: /tmp
-
-  executor:
-    cores: 1
-    instances: 1
-    memory: "1g"
-    volumeMounts:
-      - name: ivy-cache
-        mountPath: /tmp
+        emptyDir: {}

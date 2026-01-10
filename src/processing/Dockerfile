@@ -28,4 +28,7 @@ RUN curl -O https://repo1.maven.org/maven2/org/mongodb/spark/mongo-spark-connect
 
 RUN pip install pandas beautifulsoup4 pydeequ
 
+WORKDIR /opt/spark/app
+COPY dq_game.py dq_review.py gold_analytics.py raw_clean_history.py raw_clean_reviews.py raw_clean_steam_apps.py ./
+
 USER 185

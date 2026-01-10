@@ -11,22 +11,13 @@ spec:
   imagePullPolicy: Always
   sparkVersion: "3.5.4"
 
-  mainApplicationFile: "s3a://spark-scripts/gold_analytics.py"
+  mainApplicationFile: "local:///opt/spark/app/gold_analytics.py"
 
   restartPolicy:
     type: Never
 
   sparkConf:
     "spark.sql.shuffle.partitions": "8"
-
-  hadoopConf:
-    "fs.s3a.endpoint": "http://minio.airflow.svc:9000"
-
-    "fs.s3a.access.key": "minioadmin"
-    "fs.s3a.secret.key": "minioadmin"
-    "fs.s3a.path.style.access": "true"
-    "fs.s3a.impl": "org.apache.hadoop.fs.s3a.S3AFileSystem"
-    "fs.s3a.connection.ssl.enabled": "false"
 
   driver:
     cores: 1
