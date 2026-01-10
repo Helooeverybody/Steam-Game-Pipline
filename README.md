@@ -303,6 +303,8 @@ We deploy Dockerized Python producers to continuously ingest live data.
 **1. Build & Push Images**
 Navigate to each producer folder (`player-count-producer`, `live-review-producer`, `game-catalog-producer`), build the Docker image, and push it to your registry.
 
+This step can be skipped as the images are already built.
+
 **2. Apply Deployments**
 Deploy the long-running services to the cluster using the YAML files in the root directory.
 
