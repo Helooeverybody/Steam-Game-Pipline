@@ -244,7 +244,85 @@ helm install my-trino trino/trino --namespace trino --create-namespace -f trino-
 
 # Provide the same function as hadoop, but easier to use, for dev prupose only
 helm install minio bitnami/minio   --namespace airflow   --values minio_values.yaml
+
+# Kafka (Strimzi Operator + KRaft Cluster)
+helm install strimzi-kafka-operator strimzi/strimzi-kafka-operator --namespace strimzi --create-namespace
+# Wait for operator to start, then apply cluster and topics:
+kubectl apply -f kafka-cluster.yaml -n kafka
+kubectl apply -f kafka-topics.yaml -n kafka
+
+# Redis (State Store) - Using Legacy Image for stability
+helm install redis bitnami/redis \
+  --namespace redis \
+  --create-namespace \
+  --set image.repository=bitnamilegacy/redis \
+  --set image.tag=8.2-debian-12 \
+  --set architecture=standalone
+
+helm install airflow airflow-community/airflow --namespace airflow -f airflow-values.yaml
+
 ```
+
+### Step 5: Secrets & Data Bootstrap
+
+Before deploying producers, we must secure credentials and populate the Kafka log with historical data.
+
+**1. Create Kubernetes Secrets**
+```bash
+# 1. Get the auto-generated Redis password
+export REDIS_PASS=$(kubectl get secret --namespace redis redis -o jsonpath="{.data.redis-password}" | base64 -d)
+
+# 2. Create the Steam API Key Secret (Replace with your key)
+kubectl create secret generic steam-api-secrets --from-literal=api-key=YOUR_STEAM_API_KEY
+
+# 3. Create the Manual Redis Secret (Required for producers to find the password)
+kubectl create secret generic redis-secret --from-literal=password=$REDIS_PASS
+```
+
+**2. Bootstrap Historical Data (Run Locally)**
+Perform these steps from the root of the project on your local machine.
+
+*   **Get Connection Info:**
+    ```bash
+    NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[0].address}')
+    NODE_PORT=$(kubectl get svc my-kafka-cluster-kafka-external-bootstrap -n kafka -o jsonpath='{.spec.ports[0].nodePort}')
+    echo "Update your python scripts KAFKA_BOOTSTRAP_SERVERS with: $NODE_IP:$NODE_PORT"
+    ```
+
+*   **Run Bootstrap Scripts:**
+    1.  Open a tunnel to Redis: `kubectl port-forward redis-master-0 6379:6379 -n redis`
+    2.  Run Redis Bootstrap: `python bootstrap_redis.py`
+    3.  Run Kafka Backfill: `python bootstrap_data.py` (Ensure you updated the IP:PORT inside the script).
+
+---
+
+### Step 6: Deploying the Ingestion Fleet (Kappa Producers)
+
+We deploy Dockerized Python producers to continuously ingest live data.
+
+**1. Build & Push Images**
+Navigate to each producer folder (`player-count-producer`, `live-review-producer`, `game-catalog-producer`), build the Docker image, and push it to your registry.
+
+**2. Apply Deployments**
+Deploy the long-running services to the cluster using the YAML files in the root directory.
+
+```bash
+kubectl apply -f deploy-player-count-producer.yaml
+kubectl apply -f deploy-live-review-producer.yaml
+kubectl apply -f deploy-game-catalog-producer.yaml
+```
+
+**3. Verification**
+Check that producers are running and logging data:
+
+```bash
+# Check status
+kubectl get pods
+
+# Check logs (example)
+kubectl logs -f -l app=player-count-producer
+```
+
 
 ### Side notes
 
@@ -309,3 +387,5 @@ Agent node:
 /usr/local/bin/k3s-agent-uninstall.sh
 sudo rm -rf /etc/rancher/ /var/lib/rancher/
 ```
+
+
