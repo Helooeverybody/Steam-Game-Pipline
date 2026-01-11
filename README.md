@@ -269,6 +269,7 @@ The project includes pre-configured Grafana dashboards for monitoring pipeline h
 
 - **MongoDB Metrics**: Monitor database health, connections, and operations
 - **Steam Lens**: Explore insights about games, genres, and trends
+- **Game Inspect**: Real-time update about player count and positive/negative reviews of individual games
 - **Dev Inspect**: Analyze individual game developers and their portfolios
 
 ### Access Grafana
