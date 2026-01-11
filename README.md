@@ -262,6 +262,30 @@ kubectl logs -f spark-game-driver
 
 ---
 
+## 📈 Monitoring with Grafana
+
+The project includes pre-configured Grafana dashboards for monitoring pipeline health and visualizing Steam game analytics:
+
+- **MongoDB Metrics**: Monitor database health, connections, and operations
+- **Steam Lens**: Explore insights about games, genres, and trends
+- **Dev Inspect**: Analyze individual game developers and their portfolios
+
+### Access Grafana
+
+```bash
+# Port-forward Grafana service
+kubectl port-forward svc/grafana 3000:3000 -n monitoring
+```
+
+Then open http://localhost:3000 in your browser.
+
+> 📖 For detailed setup instructions, datasource configuration, and sample queries, see the [monitoring/README.md](monitoring/README.md).
+
+---
+
+
+
+
 ## 📚 Useful Commands
 
 <details>
