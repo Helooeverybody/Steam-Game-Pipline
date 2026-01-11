@@ -10,10 +10,10 @@ data:
     providers:
       - name: 'default'
         orgId: 1
-        folder: 'Custom Dashboards'
+        folder: 'Steam Analytics'
         type: file
         disableDeletion: false
-        updateIntervalSeconds: 10
+        updateIntervalSeconds: 15
         allowUiUpdates: true
         options:
           path: /var/lib/grafana/dashboards
