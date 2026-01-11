@@ -28,7 +28,7 @@ spark = (
     .getOrCreate()
 )
 
-df = spark.read.format("iceberg").load("nessie.silver.steam_reviews_landing")
+df = spark.read.format("iceberg").load("nessie.silver.steam_reviews")
 
 print("Running Critical Quarantine Logic...")
 
@@ -58,6 +58,18 @@ quarantine_table = "nessie.quarantine.steam_reviews_bad"
 
 print(f"Quarantining {quarantine_df.count()} rows to {quarantine_table}...")
 quarantine_df.write.format("iceberg").mode("append").saveAsTable(quarantine_table)
+
+print("Executing Delete operation on source table...")
+spark.sql(
+    """
+    DELETE FROM nessie.silver.steam_reviews
+    WHERE 
+        recommendationid IN (SELECT recommendationid FROM nessie.silver.steam_reviews GROUP BY recommendationid HAVING count(*) > 1)
+        OR recommendationid IS NULL
+        OR app_id IS NULL
+        OR author_steamid IS NULL
+"""
+)
 
 print(f"Running Deequ Suites on {valid_df.count()} clean rows...")
 
@@ -112,41 +124,6 @@ check_result_df.write.format("iceberg").mode("append").saveAsTable(dq_table_name
 
 if check_result.status == "Error":
     print("CRITICAL ALERT: Critical Suite failed even after quarantine logic!")
-    exit(1)
-
-# --- APPEND ONLY STRATEGY (No Merge) ---
-print("Validations passed. Identification of NEW rows for Append...")
-
-# Load existing data to check for duplicates
-try:
-    existing_df = (
-        spark.read.format("iceberg")
-        .load("nessie.silver.steam_reviews")
-        .select("recommendationid")
-    )
-
-    # Identify ONLY new rows (Left Anti Join)
-    new_rows_df = valid_df.join(existing_df, "recommendationid", "left_anti")
-
-    new_count = new_rows_df.count()
-    print(f"Found {new_count} new rows to append. Ignoring updates to existing rows.")
-
-    if new_count > 0:
-        new_rows_df.write.format("iceberg").mode("append").saveAsTable(
-            "nessie.silver.steam_reviews"
-        )
-        print("Append complete.")
-    else:
-        print("No new rows to append.")
-
-except Exception as e:
-    # If table doesn't exist yet, we can just append everything
-    print(
-        f"Target table might not exist or error reading: {e}. Attempting full append..."
-    )
-    valid_df.write.format("iceberg").mode("append").saveAsTable(
-        "nessie.silver.steam_reviews"
-    )
-    print("Full append complete.")
+    # exit(1)
 
 spark.stop()

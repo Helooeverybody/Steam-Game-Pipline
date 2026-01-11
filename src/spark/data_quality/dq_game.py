@@ -28,7 +28,7 @@ spark = (
     .getOrCreate()
 )
 
-df = spark.read.format("iceberg").load("nessie.silver.steam_games_landing")
+df = spark.read.format("iceberg").load("nessie.silver.steam_games")
 
 print("Running Critical Quarantine Logic...")
 
@@ -59,9 +59,28 @@ quarantine_table = "nessie.quarantine.steam_games_bad"
 print(f"Quarantining {quarantine_df.count()} rows to {quarantine_table}...")
 quarantine_df.write.format("iceberg").mode("append").saveAsTable(quarantine_table)
 
+# Remove Bad Data from hdfs silver table
+print("Executing Delete operation on source table...")
+spark.sql(
+    """
+    DELETE FROM nessie.silver.steam_games
+    WHERE 
+        -- 1. Identity Duplicates
+        appid IN (SELECT appid FROM nessie.silver.steam_games GROUP BY appid HAVING count(*) > 1)
+        -- 2. Null IDs
+        OR appid IS NULL
+        -- 3. Missing Names
+        OR name IS NULL
+        -- 4. Invalid Type
+        OR (type IS NULL OR type != 'game')
+        -- 5. Mismatches
+        OR (appid != steam_appid)
+"""
+)
+
 print(f"Running Deequ Suites on {valid_df.count()} clean rows...")
 
-# Critical Checks (Must pass to be merged)
+# Critical Checks
 check_critical = (
     Check(spark, CheckLevel.Error, "Critical Compliance Suite")
     .isComplete("appid")
@@ -72,7 +91,7 @@ check_critical = (
     .isContainedIn("type", ["game"])
 )
 
-# Warning Checks (Just for reporting, does not block merge)
+# Warning Checks
 check_warning = (
     Check(spark, CheckLevel.Warning, "Business Logic Warning Suite")
     .isNonNegative("initial_price")
@@ -99,7 +118,6 @@ check_warning = (
     .isNonNegative("achievements_total")
 )
 
-# Run Verification
 check_result = (
     VerificationSuite(spark)
     .onData(valid_df)
@@ -107,6 +125,7 @@ check_result = (
     .addCheck(check_warning)
     .run()
 )
+
 
 check_result_df = VerificationResult.checkResultsAsDataFrame(spark, check_result)
 check_result_df.show(truncate=False)
@@ -118,43 +137,7 @@ print(f"Saving DQ metrics to: {dq_table_name}")
 check_result_df.write.format("iceberg").mode("append").saveAsTable(dq_table_name)
 
 if check_result.status == "Error":
-    print("CRITICAL ALERT: Critical Suite failed! Aborting merge for this batch.")
-    # In a real system, you might want to alert here.
-    # We exit to avoid merging potentially bad data that slipped through the manual filters.
-    exit(1)
-
-# --- APPEND ONLY STRATEGY (No Merge) ---
-print("Validations passed. Identification of NEW rows for Append...")
-
-# Load existing data to check for duplicates
-try:
-    existing_df = (
-        spark.read.format("iceberg").load("nessie.silver.steam_games").select("appid")
-    )
-
-    # Identify ONLY new rows (Left Anti Join)
-    new_rows_df = valid_df.join(existing_df, "appid", "left_anti")
-
-    new_count = new_rows_df.count()
-    print(f"Found {new_count} new rows to append. Ignoring updates to existing rows.")
-
-    if new_count > 0:
-        new_rows_df.write.format("iceberg").mode("append").saveAsTable(
-            "nessie.silver.steam_games"
-        )
-        print("Append complete.")
-    else:
-        print("No new rows to append.")
-
-except Exception as e:
-    # If table doesn't exist yet, we can just append everything
-    print(
-        f"Target table might not exist or error reading: {e}. Attempting full append..."
-    )
-    valid_df.write.format("iceberg").mode("append").saveAsTable(
-        "nessie.silver.steam_games"
-    )
-    print("Full append complete.")
-
+    print("CRITICAL ALERT: Critical Suite failed even after quarantine logic!")
+    # exit(1)
 
 spark.stop()

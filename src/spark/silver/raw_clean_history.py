@@ -7,14 +7,14 @@ from pyspark.sql.types import (
     DoubleType,
     LongType,
     IntegerType,
-)
+) 
 import os
 
 is_backfill = os.environ.get("BACKFILL", "false").lower() == "true"
 
 if is_backfill:
     print("--- RUNNING IN BACKFILL MODE ---")
-    watermark_delay = "36500 days"
+    watermark_delay = "36500 days" 
     trigger_params = {"availableNow": True}
 else:
     print("--- RUNNING IN LIVE MODE ---")

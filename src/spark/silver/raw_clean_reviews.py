@@ -18,7 +18,7 @@ is_backfill = os.environ.get("BACKFILL", "false").lower() == "true"
 
 if is_backfill:
     print("--- RUNNING IN BACKFILL MODE ---")
-    watermark_delay = "36500 days"
+    watermark_delay = "36500 days" 
     trigger_params = {"availableNow": True}
 else:
     print("--- RUNNING IN LIVE MODE ---")
@@ -146,9 +146,9 @@ df_cleaned = df_parsed.select(
     F.col("language"),
 )
 
-df_dedup = df_cleaned.withWatermark(
-    "timestamp_created", watermark_delay
-).dropDuplicates(["recommendationid"])
+df_dedup = df_cleaned.withWatermark("timestamp_created", watermark_delay).dropDuplicates(
+    ["recommendationid"]
+)
 
 query = (
     df_dedup.writeStream.format("iceberg")
@@ -156,7 +156,7 @@ query = (
     .trigger(**trigger_params)
     .option("checkpointLocation", checkpoint_path)
     .option("fanout-enabled", "true")
-    .toTable("nessie.silver.steam_reviews_landing")
+    .toTable("nessie.silver.steam_reviews")
 )
 
 query.awaitTermination()
