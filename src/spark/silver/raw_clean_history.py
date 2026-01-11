@@ -7,14 +7,14 @@ from pyspark.sql.types import (
     DoubleType,
     LongType,
     IntegerType,
-) 
+)
 import os
 
 is_backfill = os.environ.get("BACKFILL", "false").lower() == "true"
 
 if is_backfill:
     print("--- RUNNING IN BACKFILL MODE ---")
-    watermark_delay = "36500 days" 
+    watermark_delay = "36500 days"
     trigger_params = {"availableNow": True}
 else:
     print("--- RUNNING IN LIVE MODE ---")
@@ -32,7 +32,10 @@ spark = (
         "spark.sql.catalog.nessie.catalog-impl",
         "org.apache.iceberg.nessie.NessieCatalog",
     )
-    .config("spark.sql.catalog.nessie.uri", "http://nessie.nessie-ns.svc:19120/api/v1")
+    .config(
+        "spark.sql.catalog.nessie.uri",
+        "http://nessie.nessie-ns.svc.cluster.local:19120/api/v1",
+    )
     .config("spark.sql.catalog.nessie.ref", "main")
     .config("spark.sql.catalog.nessie.authentication.type", "NONE")
     .config(

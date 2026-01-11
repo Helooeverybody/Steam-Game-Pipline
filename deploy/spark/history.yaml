@@ -7,7 +7,7 @@ spec:
   type: Python
   pythonVersion: "3"
   mode: cluster
-  image: "frostedpilot/spark:final"
+  image: "frostedpilot/spark:finalv2"
   sparkVersion: "3.5.4"
 
   mainApplicationFile: "local:///opt/spark/app/raw_clean_history.py"

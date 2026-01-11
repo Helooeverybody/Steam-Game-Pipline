@@ -7,7 +7,7 @@ spec:
   type: Python
   pythonVersion: "3"
   mode: cluster
-  image: "frostedpilot/spark:final"
+  image: "frostedpilot/spark:finalv2"
   imagePullPolicy: Always
   sparkVersion: "3.5.4"
 

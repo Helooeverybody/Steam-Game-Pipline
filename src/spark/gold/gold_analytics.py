@@ -11,7 +11,7 @@ MONGO_URI = "mongodb://admin:password@my-mongodb.database.svc:27017/steam_analyt
 WAREHOUSE_PATH = (
     "hdfs://my-hadoop-hadoop-hdfs-nn.hadoop.svc.cluster.local:9000/iceberg_data"
 )
-NESSIE_URI = "http://nessie.nessie-ns.svc:19120/api/v1"
+NESSIE_URI = "http://nessie.nessie-ns.svc.cluster.local:19120/api/v1"
 
 
 def get_spark_session(app_name="GoldKappaStreamOptimized"):
@@ -38,7 +38,7 @@ def write_dual_sink(batch_df, batch_id, iceberg_table, mongo_collection):
     if batch_df.isEmpty():
         return
     batch_df.write.format("iceberg").mode("append").saveAsTable(iceberg_table)
-    
+
     batch_df.write.format("mongodb").mode("append").option(
         "connection.uri", MONGO_URI
     ).option("database", "steam_analytics").option(
@@ -204,8 +204,8 @@ def process_gold_master_batch(raw_df, batch_id):
         (lambda df: df, "nessie.gold.game_fact", "game_fact"),
         (transform_genre_analytics, "nessie.gold.game_genre", "game_genre"),
         (transform_developer_analytics, "nessie.gold.game_dev", "game_dev"),
-        (transform_price_analytics,"nessie.gold.price_segment","price_segment"),
-        (transform_release_trend,"nessie.gold.release_trend","release_trend"),
+        (transform_price_analytics, "nessie.gold.price_segment", "price_segment"),
+        (transform_release_trend, "nessie.gold.release_trend", "release_trend"),
     ]
 
     try:
@@ -230,58 +230,92 @@ def run_pipeline(games_df):
 
 def run_history_pipeline(spark):
     df = spark.readStream.format("iceberg").load("nessie.silver.steam_history")
-    
+
     # 30-min window aggregation
-    windowed = df.withWatermark("event_timestamp", "1 hour") \
-        .groupBy("app_id", F.window("event_timestamp", "30 minutes").alias("window")) \
+    windowed = (
+        df.withWatermark("event_timestamp", "1 hour")
+        .groupBy("app_id", F.window("event_timestamp", "30 minutes").alias("window"))
         .agg(
             F.max("player_count").alias("max_players"),
-            F.round(F.avg("player_count"), 2).alias("avg_players")
-        ).select("app_id", "max_players", "avg_players", F.col("window.start").alias("window_start"))
+            F.round(F.avg("player_count"), 2).alias("avg_players"),
+        )
+        .select(
+            "app_id",
+            "max_players",
+            "avg_players",
+            F.col("window.start").alias("window_start"),
+        )
+    )
 
-    return windowed.writeStream \
-        .trigger(processingTime="1 minute") \
-        .foreachBatch(lambda b, i: write_dual_sink(b, i, "nessie.gold.player_stats_30min", "player_stats_30min")) \
-        .option("checkpointLocation", f"{CHECKPOINT_BASE}/history") \
+    return (
+        windowed.writeStream.trigger(processingTime="1 minute")
+        .foreachBatch(
+            lambda b, i: write_dual_sink(
+                b, i, "nessie.gold.player_stats_30min", "player_stats_30min"
+            )
+        )
+        .option("checkpointLocation", f"{CHECKPOINT_BASE}/history")
         .start()
+    )
+
 
 def run_reviews_pipeline(spark):
     df = spark.readStream.format("iceberg").load("nessie.silver.steam_reviews")
 
     # 1-hour window aggregation
-    gold_agg = df.select("app_id", "timestamp_created", "voted_up", "weighted_vote_score") \
-        .withWatermark("timestamp_created", "2 hours") \
-        .groupBy("app_id", F.window("timestamp_created", "1 hour").alias("window")) \
+    gold_agg = (
+        df.select("app_id", "timestamp_created", "voted_up", "weighted_vote_score")
+        .withWatermark("timestamp_created", "2 hours")
+        .groupBy("app_id", F.window("timestamp_created", "1 hour").alias("window"))
         .agg(
             F.count("*").alias("total_reviews"),
-            F.sum(F.when(F.col("voted_up") == True, 1).otherwise(0)).alias("positive_count"),
-            F.sum(F.when(F.col("voted_up") == False, 1).otherwise(0)).alias("negative_count"),
-            F.avg("weighted_vote_score").alias("avg_quality")
+            F.sum(F.when(F.col("voted_up") == True, 1).otherwise(0)).alias(
+                "positive_count"
+            ),
+            F.sum(F.when(F.col("voted_up") == False, 1).otherwise(0)).alias(
+                "negative_count"
+            ),
+            F.avg("weighted_vote_score").alias("avg_quality"),
         )
-
-    final = gold_agg.select(
-        "app_id", "total_reviews", "negative_count", "positive_count",
-        F.round("avg_quality", 2).alias("avg_quality"),
-        F.round(F.col("negative_count") / F.col("total_reviews"), 4).alias("negative_ratio"),
-        F.round(F.col("positive_count") / F.col("total_reviews"), 4).alias("positive_ratio"),
-        F.col("window.start").alias("window_start")
     )
 
-    return final.writeStream \
-        .trigger(processingTime="1 minute") \
-        .foreachBatch(lambda b, i: write_dual_sink(b, i, "nessie.gold.reviews_hourly", "reviews_hourly")) \
-        .option("checkpointLocation", f"{CHECKPOINT_BASE}/reviews_dual") \
+    final = gold_agg.select(
+        "app_id",
+        "total_reviews",
+        "negative_count",
+        "positive_count",
+        F.round("avg_quality", 2).alias("avg_quality"),
+        F.round(F.col("negative_count") / F.col("total_reviews"), 4).alias(
+            "negative_ratio"
+        ),
+        F.round(F.col("positive_count") / F.col("total_reviews"), 4).alias(
+            "positive_ratio"
+        ),
+        F.col("window.start").alias("window_start"),
+    )
+
+    return (
+        final.writeStream.trigger(processingTime="1 minute")
+        .foreachBatch(
+            lambda b, i: write_dual_sink(
+                b, i, "nessie.gold.reviews_hourly", "reviews_hourly"
+            )
+        )
+        .option("checkpointLocation", f"{CHECKPOINT_BASE}/reviews_dual")
         .start()
+    )
+
 
 def main():
     spark = get_spark_session()
     games_df = spark.readStream.format("iceberg").load("nessie.silver.steam_games")
-    
+
     q_gold = run_pipeline(games_df)
     q_history = run_history_pipeline(spark)
     q_reviews = run_reviews_pipeline(spark)
 
     spark.streams.awaitAnyTermination()
+
 
 if __name__ == "__main__":
     main()
