@@ -4,8 +4,8 @@ metadata:
   name: dq-review
   namespace: default
 spec:
-  # Cron schedule: Runs every 3 hours (00:00, 03:00, 06:00, etc.)
-  schedule: "0 */3 * * *"
+  # Cron schedule: Runs every 10 minutes (reviews feed Gold hourly aggregation)
+  schedule: "*/10 * * * *"
   concurrencyPolicy: Forbid
   successfulRunHistoryLimit: 1
   failedRunHistoryLimit: 3
@@ -27,7 +27,7 @@ spec:
 
     driver:
       cores: 1
-      memory: "512M"
+      memory: "1g"
       serviceAccount: spark-operator-spark
       env:
         - name: PYSPARK_PYTHON
@@ -40,7 +40,7 @@ spec:
 
     executor:
       cores: 1
-      instances: 1
+      instances: 2
       memory: "1g"
       volumeMounts:
         - name: ivy-cache
