@@ -7,7 +7,7 @@ spec:
   type: Python
   pythonVersion: "3"
   mode: cluster
-  image: "frostedpilot/spark:finalv3"
+  image: "frostedpilot/spark:finalv5"
   sparkVersion: "3.5.4"
 
   mainApplicationFile: "local:///opt/spark/app/raw_clean_steam_apps.py"
@@ -32,8 +32,8 @@ spec:
         mountPath: /tmp
 
   executor:
-    cores: 1
-    instances: 1
+    cores: 2
+    instances: 3
     memory: "1g"
     volumeMounts:
       - name: ivy-cache

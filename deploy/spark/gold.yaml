@@ -7,7 +7,7 @@ spec:
   type: Python
   pythonVersion: "3"
   mode: cluster
-  image: "frostedpilot/spark:finalv3"
+  image: "frostedpilot/spark:finalv5"
   imagePullPolicy: Always
   sparkVersion: "3.5.4"
 
@@ -33,7 +33,7 @@ spec:
         mountPath: /tmp
 
   executor:
-    cores: 1
+    cores: 2
     instances: 1
     memory: "1g"
     volumeMounts:
