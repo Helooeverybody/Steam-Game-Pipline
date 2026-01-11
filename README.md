@@ -22,7 +22,7 @@ This project implements a **distributed data pipeline** for scraping, processing
 - **Data quality monitoring** with PyDeequ
 - **Multiple serving layers** for BI, SQL analytics, and ML
 
-> 📦 **Sample Data**: Download pre-scraped data from [MediaFire](https://www.mediafire.com/file/4hik88ybarvtekf/new_new_data.rar/file)
+> 📦 **Sample Data**: Download pre-scraped data from [MediaFire](https://www.mediafire.com/file/rclky7tuzgkz0xq/raw.rar/file). Extract the "raw" folder to the "data" folder
 
 ---
 
