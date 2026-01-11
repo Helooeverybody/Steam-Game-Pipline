@@ -487,7 +487,7 @@ query = (
     .trigger(processingTime="1 minute")
     .option("checkpointLocation", checkpoint_path)
     .option("fanout-enabled", "true")
-    .toTable("nessie.silver.steam_games")
+    .toTable("nessie.silver.steam_games_landing")
 )
 
 query.awaitTermination()

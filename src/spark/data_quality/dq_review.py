@@ -28,7 +28,7 @@ spark = (
     .getOrCreate()
 )
 
-df = spark.read.format("iceberg").load("nessie.silver.steam_reviews")
+df = spark.read.format("iceberg").load("nessie.silver.steam_reviews_landing")
 
 print("Running Critical Quarantine Logic...")
 
@@ -58,18 +58,6 @@ quarantine_table = "nessie.quarantine.steam_reviews_bad"
 
 print(f"Quarantining {quarantine_df.count()} rows to {quarantine_table}...")
 quarantine_df.write.format("iceberg").mode("append").saveAsTable(quarantine_table)
-
-print("Executing Delete operation on source table...")
-spark.sql(
-    """
-    DELETE FROM nessie.silver.steam_reviews
-    WHERE 
-        recommendationid IN (SELECT recommendationid FROM nessie.silver.steam_reviews GROUP BY recommendationid HAVING count(*) > 1)
-        OR recommendationid IS NULL
-        OR app_id IS NULL
-        OR author_steamid IS NULL
-"""
-)
 
 print(f"Running Deequ Suites on {valid_df.count()} clean rows...")
 
@@ -124,6 +112,33 @@ check_result_df.write.format("iceberg").mode("append").saveAsTable(dq_table_name
 
 if check_result.status == "Error":
     print("CRITICAL ALERT: Critical Suite failed even after quarantine logic!")
-    # exit(1)
+    exit(1)
+
+# --- MERGE LOGIC ---
+print("Validations passed. Merging clean data into Gold/Curated Silver Table...")
+
+valid_df.createOrReplaceTempView("valid_review_updates")
+
+# Merge into the existing curated table
+# steam_reviews primary key is recommendationid
+spark.sql("""
+    MERGE INTO nessie.silver.steam_reviews t
+    USING valid_review_updates s
+    ON t.recommendationid = s.recommendationid
+    WHEN MATCHED THEN UPDATE SET *
+    WHEN NOT MATCHED THEN INSERT *
+""")
+
+print("Merge complete.")
+
+# --- CLEANUP LANDING ---
+print("Cleaning up processed data from Landing table...")
+
+spark.sql("""
+    DELETE FROM nessie.silver.steam_reviews_landing 
+    WHERE recommendationid IN (SELECT recommendationid FROM valid_review_updates)
+""")
+
+print("Landing table cleanup complete.")
 
 spark.stop()

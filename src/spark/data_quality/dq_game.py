@@ -28,7 +28,7 @@ spark = (
     .getOrCreate()
 )
 
-df = spark.read.format("iceberg").load("nessie.silver.steam_games")
+df = spark.read.format("iceberg").load("nessie.silver.steam_games_landing")
 
 print("Running Critical Quarantine Logic...")
 
@@ -59,28 +59,9 @@ quarantine_table = "nessie.quarantine.steam_games_bad"
 print(f"Quarantining {quarantine_df.count()} rows to {quarantine_table}...")
 quarantine_df.write.format("iceberg").mode("append").saveAsTable(quarantine_table)
 
-# Remove Bad Data from hdfs silver table
-print("Executing Delete operation on source table...")
-spark.sql(
-    """
-    DELETE FROM nessie.silver.steam_games
-    WHERE 
-        -- 1. Identity Duplicates
-        appid IN (SELECT appid FROM nessie.silver.steam_games GROUP BY appid HAVING count(*) > 1)
-        -- 2. Null IDs
-        OR appid IS NULL
-        -- 3. Missing Names
-        OR name IS NULL
-        -- 4. Invalid Type
-        OR (type IS NULL OR type != 'game')
-        -- 5. Mismatches
-        OR (appid != steam_appid)
-"""
-)
-
 print(f"Running Deequ Suites on {valid_df.count()} clean rows...")
 
-# Critical Checks
+# Critical Checks (Must pass to be merged)
 check_critical = (
     Check(spark, CheckLevel.Error, "Critical Compliance Suite")
     .isComplete("appid")
@@ -91,7 +72,7 @@ check_critical = (
     .isContainedIn("type", ["game"])
 )
 
-# Warning Checks
+# Warning Checks (Just for reporting, does not block merge)
 check_warning = (
     Check(spark, CheckLevel.Warning, "Business Logic Warning Suite")
     .isNonNegative("initial_price")
@@ -118,6 +99,7 @@ check_warning = (
     .isNonNegative("achievements_total")
 )
 
+# Run Verification
 check_result = (
     VerificationSuite(spark)
     .onData(valid_df)
@@ -125,7 +107,6 @@ check_result = (
     .addCheck(check_warning)
     .run()
 )
-
 
 check_result_df = VerificationResult.checkResultsAsDataFrame(spark, check_result)
 check_result_df.show(truncate=False)
@@ -137,7 +118,41 @@ print(f"Saving DQ metrics to: {dq_table_name}")
 check_result_df.write.format("iceberg").mode("append").saveAsTable(dq_table_name)
 
 if check_result.status == "Error":
-    print("CRITICAL ALERT: Critical Suite failed even after quarantine logic!")
-    # exit(1)
+    print("CRITICAL ALERT: Critical Suite failed! Aborting merge for this batch.")
+    # In a real system, you might want to alert here.
+    # We exit to avoid merging potentially bad data that slipped through the manual filters.
+    exit(1)
+
+# --- MERGE LOGIC ---
+print("Validations passed. Merging clean data into Gold/Curated Silver Table...")
+
+# Create a temporary view for the valid data to use in SQL
+valid_df.createOrReplaceTempView("valid_updates")
+
+# Merge into the existing curated table
+# We match on appid. If matched, we update. If not, we insert.
+spark.sql("""
+    MERGE INTO nessie.silver.steam_games t
+    USING valid_updates s
+    ON t.appid = s.appid
+    WHEN MATCHED THEN UPDATE SET *
+    WHEN NOT MATCHED THEN INSERT *
+""")
+
+print("Merge complete.")
+
+# --- CLEANUP LANDING ---
+# IMPORTANT: In a production 'landing' pattern, you usually want to delete the data you just processed
+# so the next run doesn't re-process it.
+print("Cleaning up processed data from Landing table...")
+
+# We delete all rows from landing that match the appids we just processed (or simply truncate if we assume strict batching)
+# Using a subquery delete for safety:
+spark.sql("""
+    DELETE FROM nessie.silver.steam_games_landing 
+    WHERE appid IN (SELECT appid FROM valid_updates)
+""")
+
+print("Landing table cleanup complete.")
 
 spark.stop()

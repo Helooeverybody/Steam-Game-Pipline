@@ -153,7 +153,7 @@ query = (
     .trigger(**trigger_params)
     .option("checkpointLocation", checkpoint_path)
     .option("fanout-enabled", "true")
-    .toTable("nessie.silver.steam_reviews")
+    .toTable("nessie.silver.steam_reviews_landing")
 )
 
 query.awaitTermination()
