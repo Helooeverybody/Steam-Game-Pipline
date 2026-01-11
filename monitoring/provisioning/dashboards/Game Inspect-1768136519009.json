@@ -1,0 +1,470 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 0,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "haohanyang-mongodb-datasource",
+        "uid": "mongodb-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 10,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "collection": "player_stats_30min",
+          "datasource": {
+            "type": "haohanyang-mongodb-datasource",
+            "uid": "mongodb-ds"
+          },
+          "queryText": "[\r\n  { \r\n    \"$match\": { \r\n      \"$and\": [\r\n        {\r\n          \"$expr\": {\r\n            \"$eq\": [\"$app_id\", { \"$toInt\": \"$game_id\" }]\r\n          }\r\n        }\r\n      ]\r\n    } \r\n  },\r\n  { \"$sort\": { \"window_start\": 1 } },\r\n  {\r\n    \"$project\": {\r\n      \"_id\": 0,\r\n      \"time\": \"$window_start\",\r\n      \"Peak\": \"$max_players\",\r\n      \"Average\": \"$avg_players\"\r\n    }\r\n  }\r\n]",
+          "refId": "A"
+        }
+      ],
+      "title": "Last Player Count",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "haohanyang-mongodb-datasource",
+        "uid": "mongodb-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "yellow",
+                "value": 0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 14,
+        "x": 10,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "legend": {
+          "calcs": [
+            "mean",
+            "median"
+          ],
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "collection": "player_stats_30min",
+          "queryText": "[\r\n  { \r\n    \"$match\": { \r\n      \"$expr\": {\r\n        \"$eq\": [\"$app_id\", { \"$toInt\": \"$game_id\" }]\r\n      }\r\n    } \r\n  },\r\n  { \"$sort\": { \"window_start\": 1 } },\r\n  {\r\n    \"$project\": {\r\n      \"_id\": 0,\r\n      \"time\": \"$window_start\",\r\n      \"Peak Players\": \"$max_players\"\r\n    }\r\n  }\r\n]",
+          "refId": "A"
+        }
+      ],
+      "title": "Player Count Trend",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "haohanyang-mongodb-datasource",
+        "uid": "mongodb-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 5,
+        "x": 0,
+        "y": 7
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "collection": "reviews_hourly",
+          "queryText": "[\r\n  { \r\n    \"$match\": { \r\n      \"app_id\": \"$game_id\"\r\n    } \r\n  },\r\n  {\r\n    \"$group\": {\r\n      \"_id\": null,\r\n      \"value\": { \"$sum\": \"$total_reviews\" }\r\n    }\r\n  },\r\n  {\r\n    \"$project\": {\r\n      \"_id\": 0,\r\n      \"value\": 1\r\n    }\r\n  }\r\n]",
+          "refId": "A"
+        }
+      ],
+      "title": "Total Reviews",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "haohanyang-mongodb-datasource",
+        "uid": "mongodb-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 5,
+        "x": 5,
+        "y": 7
+      },
+      "id": 4,
+      "options": {
+        "displayLabels": [
+          "percent"
+        ],
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": [
+            "value"
+          ]
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "sort": "asc",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "collection": "reviews_hourly",
+          "queryText": "[\r\n  { \r\n    \"$match\": { \r\n      \"app_id\": \"$game_id\"\r\n    } \r\n  },\r\n  {\r\n    \"$group\": {\r\n      \"_id\": null,\r\n      \"Positive\": { \"$sum\": \"$positive_count\" },\r\n      \"Negative\": { \"$sum\": \"$negative_count\" }\r\n    }\r\n  },\r\n  {\r\n    \"$project\": {\r\n      \"_id\": 0,\r\n      \"Positive\": 1,\r\n      \"Negative\": 1\r\n    }\r\n  }\r\n]",
+          "refId": "A"
+        }
+      ],
+      "title": "Negative vs Positive Reviews",
+      "type": "piechart"
+    },
+    {
+      "datasource": {
+        "type": "haohanyang-mongodb-datasource",
+        "uid": "mongodb-ds"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 14,
+        "x": 10,
+        "y": 9
+      },
+      "id": 3,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.3.1",
+      "targets": [
+        {
+          "collection": "reviews_hourly",
+          "queryText": "[\r\n  { \r\n    \"$match\": { \r\n      \"app_id\": \"$game_id\"\r\n    } \r\n  },\r\n  { \"$sort\": { \"window_start\": 1 } },\r\n  {\r\n    \"$project\": {\r\n      \"_id\": 0,\r\n      \"time\": \"$window_start\",\r\n      \"Positive\": \"$positive_count\",\r\n      \"Negative\": \"$negative_count\"\r\n    }\r\n  }\r\n]",
+          "refId": "A"
+        }
+      ],
+      "title": "Positive/Negative Reviews Trend",
+      "type": "timeseries"
+    }
+  ],
+  "preload": false,
+  "schemaVersion": 42,
+  "tags": [],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "text": "730",
+          "value": "730"
+        },
+        "label": "Game",
+        "name": "game_id",
+        "options": [
+          {
+            "selected": false,
+            "text": "PUBG BATTLEGROUNDS",
+            "value": "578080"
+          },
+          {
+            "selected": true,
+            "text": "Counter-Strike 2",
+            "value": "730"
+          },
+          {
+            "selected": false,
+            "text": "ELDEN RING",
+            "value": "1245620"
+          },
+          {
+            "selected": false,
+            "text": "Black Myth Wukong",
+            "value": "2358720"
+          },
+          {
+            "selected": false,
+            "text": "Palworld",
+            "value": "1623730"
+          },
+          {
+            "selected": false,
+            "text": "Monster Hunter Wilds",
+            "value": "2246340"
+          },
+          {
+            "selected": false,
+            "text": "Lost Ark",
+            "value": "1599340"
+          },
+          {
+            "selected": false,
+            "text": "Cyberpunk 2077",
+            "value": "1091500"
+          }
+        ],
+        "query": "PUBG BATTLEGROUNDS : 578080, Counter-Strike 2 : 730, \t\nELDEN RING : 1245620, Black Myth Wukong : 2358720, Palworld : 1623730, Monster Hunter Wilds : 2246340, Lost Ark : 1599340, \t\nCyberpunk 2077 : 1091500",
+        "type": "custom"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-3d",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Game Inspect",
+  "uid": "gshb2w",
+  "version": 10
+}
