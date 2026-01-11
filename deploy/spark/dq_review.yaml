@@ -14,7 +14,7 @@ spec:
     type: Python
     pythonVersion: "3"
     mode: cluster
-    image: "frostedpilot/spark:finalv3"
+    image: "frostedpilot/spark:finalv4"
     sparkVersion: "3.5.4"
 
     mainApplicationFile: "local:///opt/spark/app/dq_review.py"
