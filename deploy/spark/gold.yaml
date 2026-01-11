@@ -7,7 +7,7 @@ spec:
   type: Python
   pythonVersion: "3"
   mode: cluster
-  image: "frostedpilot/spark:beta"
+  image: "frostedpilot/spark:final"
   imagePullPolicy: Always
   sparkVersion: "3.5.4"
 
@@ -33,9 +33,9 @@ spec:
         mountPath: /tmp
 
   executor:
-    cores: 2
-    instances: 2
-    memory: "2g"
+    cores: 1
+    instances: 1
+    memory: "1g"
     volumeMounts:
       - name: ivy-cache
         mountPath: /tmp

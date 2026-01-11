@@ -7,7 +7,7 @@ spec:
   type: Python
   pythonVersion: "3"
   mode: cluster
-  image: "frostedpilot/spark:beta"
+  image: "frostedpilot/spark:final"
   sparkVersion: "3.5.4"
 
   mainApplicationFile: "local:///opt/spark/app/raw_clean_reviews.py"
@@ -19,8 +19,8 @@ spec:
     "spark.sql.shuffle.partitions": "8"
 
   driver:
-    cores: 2
-    memory: "2g"
+    cores: 1
+    memory: "1g"
     serviceAccount: spark-operator-spark
     env:
       - name: PYSPARK_PYTHON
@@ -33,7 +33,7 @@ spec:
 
   executor:
     cores: 1
-    instances: 2
+    instances: 1
     memory: "1g"
     volumeMounts:
       - name: ivy-cache

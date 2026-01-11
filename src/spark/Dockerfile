@@ -39,4 +39,7 @@ COPY gold/gold_analytics.py ./
 # Copy Data Quality jobs
 COPY data_quality/dq_game.py data_quality/dq_review.py ./
 
+# Copy SparkML jobs
+COPY machine_learning/ML_prediction.py ./
+
 USER 185

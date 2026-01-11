@@ -7,11 +7,11 @@ spec:
   type: Python
   pythonVersion: "3"
   mode: cluster
-  image: "frostedpilot/spark:latest"
+  image: "frostedpilot/spark:final"
   sparkVersion: "3.5.4"
-  
+
   mainApplicationFile: "s3a://spark-scripts/spark_ML_2.py"
-  
+
   restartPolicy:
     type: Never
 
@@ -20,7 +20,7 @@ spec:
 
   hadoopConf:
     "fs.s3a.endpoint": "http://minio.airflow.svc:9000"
-    
+
     "fs.s3a.access.key": "minioadmin"
     "fs.s3a.secret.key": "minioadmin"
     "fs.s3a.path.style.access": "true"
@@ -39,7 +39,7 @@ spec:
     volumeMounts:
       - name: ivy-cache
         mountPath: /tmp
-  
+
   executor:
     cores: 2
     instances: 2
