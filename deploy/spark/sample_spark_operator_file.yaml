@@ -7,7 +7,7 @@ spec:
   type: Python
   pythonVersion: "3"
   mode: cluster
-  image: "frostedpilot/spark:finalv2"
+  image: "frostedpilot/spark:finalv3"
   sparkVersion: "3.5.4"
 
   mainApplicationFile: "s3a://spark-scripts/read_minio.py"

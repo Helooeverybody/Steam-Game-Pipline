@@ -114,29 +114,41 @@ if check_result.status == "Error":
     print("CRITICAL ALERT: Critical Suite failed even after quarantine logic!")
     exit(1)
 
-# --- MERGE LOGIC ---
-print("Validations passed. Merging clean data into Gold/Curated Silver Table...")
+# --- APPEND ONLY STRATEGY (No Merge) ---
+print("Validations passed. Identification of NEW rows for Append...")
 
-valid_df.createOrReplaceTempView("valid_review_updates")
+# Load existing data to check for duplicates
+try:
+    existing_df = spark.read.format("iceberg").load("nessie.silver.steam_reviews").select("recommendationid")
+    
+    # Identify ONLY new rows (Left Anti Join)
+    new_rows_df = valid_df.join(existing_df, "recommendationid", "left_anti")
+    
+    new_count = new_rows_df.count()
+    print(f"Found {new_count} new rows to append. Ignoring updates to existing rows.")
+    
+    if new_count > 0:
+        new_rows_df.write.format("iceberg").mode("append").saveAsTable("nessie.silver.steam_reviews")
+        print("Append complete.")
+    else:
+        print("No new rows to append.")
 
-# Merge into the existing curated table
-# steam_reviews primary key is recommendationid
-spark.sql("""
-    MERGE INTO nessie.silver.steam_reviews t
-    USING valid_review_updates s
-    ON t.recommendationid = s.recommendationid
-    WHEN MATCHED THEN UPDATE SET *
-    WHEN NOT MATCHED THEN INSERT *
-""")
-
-print("Merge complete.")
+except Exception as e:
+    # If table doesn't exist yet, we can just append everything
+    print(f"Target table might not exist or error reading: {e}. Attempting full append...")
+    valid_df.write.format("iceberg").mode("append").saveAsTable("nessie.silver.steam_reviews")
+    print("Full append complete.")
 
 # --- CLEANUP LANDING ---
 print("Cleaning up processed data from Landing table...")
 
+# We deleted from landing whatever was in valid_df (processed)
+# Since we can't easily join back to delete 'only what was inserted' safely without PKs if they were deduped
+# We will delete based on the valid batch we determined earlier.
+valid_df.createOrReplaceTempView("processed_batch")
 spark.sql("""
     DELETE FROM nessie.silver.steam_reviews_landing 
-    WHERE recommendationid IN (SELECT recommendationid FROM valid_review_updates)
+    WHERE recommendationid IN (SELECT recommendationid FROM processed_batch)
 """)
 
 print("Landing table cleanup complete.")

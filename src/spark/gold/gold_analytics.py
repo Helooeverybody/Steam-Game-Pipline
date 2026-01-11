@@ -229,7 +229,11 @@ def run_pipeline(games_df):
 
 
 def run_history_pipeline(spark):
-    df = spark.readStream.format("iceberg").load("nessie.silver.steam_history")
+    df = (
+        spark.readStream.format("iceberg")
+        .option("streaming-skip-overwrite-snapshots", "true")
+        .load("nessie.silver.steam_history")
+    )
 
     # 30-min window aggregation
     windowed = (
@@ -260,7 +264,11 @@ def run_history_pipeline(spark):
 
 
 def run_reviews_pipeline(spark):
-    df = spark.readStream.format("iceberg").load("nessie.silver.steam_reviews")
+    df = (
+        spark.readStream.format("iceberg")
+        .option("streaming-skip-overwrite-snapshots", "true")
+        .load("nessie.silver.steam_reviews")
+    )
 
     # 1-hour window aggregation
     gold_agg = (
@@ -308,7 +316,11 @@ def run_reviews_pipeline(spark):
 
 def main():
     spark = get_spark_session()
-    games_df = spark.readStream.format("iceberg").load("nessie.silver.steam_games")
+    games_df = (
+        spark.readStream.format("iceberg")
+        .option("streaming-skip-overwrite-snapshots", "true")
+        .load("nessie.silver.steam_games")
+    )
 
     q_gold = run_pipeline(games_df)
     q_history = run_history_pipeline(spark)
