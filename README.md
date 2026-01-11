@@ -104,6 +104,7 @@ flowchart TD
 │       ├── silver/            # Raw → Silver transformations
 │       ├── gold/              # Silver → Gold aggregations
 │       └── data_quality/      # DQ validation jobs
+|       |__ machine learning/  # spark machine learning job 
 │
 ├── scripts/                   # Utilities & operations
 │   ├── bootstrap/             # Data bootstrap scripts
