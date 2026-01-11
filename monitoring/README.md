@@ -25,6 +25,7 @@ Open http://localhost:3000 in your browser, you will see Grafana UI.
 - Configure Connection
 All settings has been filled by default. Choose **Authentication Method**: UserName/Password and click **Save & Test** to verify the connection.
 
+
 | Setting | Value |
 |---------|-------|
 | **URL** | `mongodb://mongodb.default.svc.cluster.local:27017` |
@@ -35,11 +36,11 @@ All settings has been filled by default. Choose **Authentication Method**: UserN
 ## Dashboards
 
 | Dashboards | DataSource | Description |
-|---------------|----------|--------------|
+|------------|----------|--------------|
 | `MongoDB Metrics` | Prometheus | Monitor MongoDB health with different metrics of connection and operation |
 | `Steam Lens` | MongoDB | Show a lot of insights about Steam Games such as popular genres, most played games, game releases trend, etc |
+| `Game Inspect` | MongoDB | Real-time stats of player count and reviews of games |
 | `Dev Inspect` | MongoDB | Choose a developer to get insights about their games (total games, average price, most popular games, etc...) |
-
 ---
 
 ## Sample MongoDB Queries in Grafana
@@ -136,3 +137,4 @@ k3s kubectl port-forward svc/mongo-express 8081:8081 -n database
 k3s kubectl port-forward svc/prometheus 9090:9090 -n monitoring
 
 ```
+
